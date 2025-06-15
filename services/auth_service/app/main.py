@@ -1,0 +1,25 @@
+import os
+from contextlib import asynccontextmanager
+import sys
+from core.config import PROFILE
+
+if PROFILE == "local":
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    sys.path.append(project_root)
+import uvicorn
+from fastapi import FastAPI
+from api.routes_auth import router as auth_router
+from common.db.maria import Base, engine
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+app.include_router(auth_router, prefix="/auth")
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

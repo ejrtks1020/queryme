@@ -1,0 +1,48 @@
+# pycharm
+.idea
+.python-version
+# poetry build
+dist
+#**/__init__.py
+**/__pycache__
+
+
+# ----- admin-front ------
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.DS_Store
+dist
+dist-ssr
+
+/cypress/videos/
+/cypress/screenshots/
+
+# Editor directories and files
+.vscode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/*.code-snippets
+!.vscode/tours
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.yarn
+
+# iconify dist files
+src/@iconify/icons-bundle.js
+
+.venv
+venv
