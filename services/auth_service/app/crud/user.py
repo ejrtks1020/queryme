@@ -6,7 +6,7 @@ from common.db.maria import async_transactional
 
 @async_transactional
 async def create_user(user: UserCreate, hashed_pw: str, session: AsyncSession = None):
-    db_user = User(email=user.email, hashed_password=hashed_pw)
+    db_user = User(email=user.email, hashed_password=hashed_pw, role="user")
     session.add(db_user)
     return db_user
 

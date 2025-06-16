@@ -5,9 +5,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import TimeoutError
+from sqlalchemy.engine import create_engine
 from common.core.config import db_config
 
-DB_URL = (
+ASYNC_DB_URL = (
     f"mysql+asyncmy://"
     f"{db_config.DB_USERNAME}:"
     f"{db_config.DB_PASSWORD}@"
@@ -16,7 +17,17 @@ DB_URL = (
     f"{db_config.DB_NAME}"
 )
 
-engine = create_async_engine(DB_URL, pool_pre_ping=True)
+SYNC_DB_URL = (
+    f"mysql+pymysql://"
+    f"{db_config.DB_USERNAME}:"
+    f"{db_config.DB_PASSWORD}@"
+    f"{db_config.DB_HOST}:"
+    f"{db_config.DB_PORT}/"
+    f"{db_config.DB_NAME}"
+)
+
+engine = create_async_engine(ASYNC_DB_URL, pool_pre_ping=True)
+engine_for_migration = create_engine(SYNC_DB_URL, pool_pre_ping=True)
 SessionLocal = sessionmaker(
     engine, 
     class_=AsyncSession, 

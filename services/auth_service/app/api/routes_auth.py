@@ -1,23 +1,56 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from schemas.user import UserCreate, UserLogin, UserOut
-from services.service import create_user_service, authenticate_user_service, get_user_by_id_service
-from core.security import create_access_token
+from fastapi import APIRouter, Depends, HTTPException, status
+from schemas.user import UserCreate, UserLogin, UserModel
+from services.service import create_user_service, authenticate_user_service
+from fastapi.responses import JSONResponse
+from core.security import get_current_user
+from crud.session import create_session, remove_session
 
 router = APIRouter()
 
-@router.post("/signup", response_model=UserOut)
-def signup(user: UserCreate):
-    return create_user_service(user)
+@router.post("/signup", response_model=UserModel)
+async def signup(user: UserCreate):
+    return await create_user_service(user)
 
 @router.post("/login")
-def login(user: UserLogin):
-    db_user = authenticate_user_service(user.email, user.password)
-    if not db_user:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
-    token = create_access_token(data={"sub": str(db_user.id)})
-    return {"access_token": token, "token_type": "bearer"}
+async def login(request: UserLogin):
+    user = await authenticate_user_service(request.email, request.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # 세션 생성
+    session_id = await create_session(user.id)
+    
+    # JSON 응답 반환
+    response = JSONResponse(
+        content={"message": "Login successful"},
+        status_code=status.HTTP_200_OK
+    )
+    
+    # 세션 쿠키 설정
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        # secure=True,  # HTTPS에서만 전송
+        samesite="lax",  # CSRF 방지
+        max_age=3600  # 1시간
+    )
+    return response
 
-@router.get("/me", response_model=UserOut)
-def read_me(current_user=Depends(get_user_by_id_service)):
+@router.post("/logout")
+async def logout(current_user = Depends(get_current_user)):
+    await remove_session(current_user.id)
+    response = JSONResponse(
+        content={"message": "Logout successful"},
+        status_code=status.HTTP_200_OK
+    )
+    response.delete_cookie("session_id")
+    return response
+
+@router.get("/me", response_model=UserModel)
+async def read_users_me(current_user = Depends(get_current_user)):
     return current_user

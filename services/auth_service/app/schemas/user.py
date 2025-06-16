@@ -9,8 +9,11 @@ class UserCreate(UserBase):
 class UserLogin(UserBase):
     password: str
 
-class UserOut(UserBase):
+class UserModel(UserBase):
     id: int
-    model_config = {
-        "from_attributes": True
-    }
+    email: str
+    role: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True

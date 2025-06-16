@@ -1,72 +1,91 @@
 import { useNavigate } from 'react-router-dom';
+import useApi from '@/hooks/useApi';
+import authApi from '@/api/auth';
+import { useEffect, useState } from 'react';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
+  const login = useApi(
+    authApi.login
+  )
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 로그인 로직 구현
-    navigate('/');
+    login.request({
+      email: e.target.email.value,
+      password: e.target.password.value
+    })
   };
 
+  useEffect(() => {
+    if (login.error) {
+      setErrorMessage(login.error.message);
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  }, [login.error]);
+
+  useEffect(() => {
+    setLoading(login.loading)
+  }, [login.loading])
+
+  useEffect(() => {
+    if (login.data) {
+      navigate('/');
+    }
+  }, [login.data]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            로그인
-          </h2>
+    <div className="container">
+      <h2 className="text-center mb-4">로그인</h2>
+      {errorMessage && (
+        <div style={{
+          backgroundColor: '#ffcccc',
+          color: '#990000',
+          padding: '10px',
+          marginBottom: '10px',
+          borderRadius: '4px',
+          textAlign: 'center'
+        }}>
+          {errorMessage}
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                이메일
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="이메일"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                비밀번호
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="비밀번호"
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              로그인
-            </button>
-          </div>
-
-          <div className="text-sm text-center">
-            <button
-              type="button"
-              onClick={() => navigate('/register')}
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              회원가입
-            </button>
-          </div>
-        </form>
-      </div>
+      )}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="email">이메일</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            placeholder="이메일"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">비밀번호</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            placeholder="비밀번호"
+          />
+        </div>
+        <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+          로그인
+        </button>
+        <div className="text-center mt-4">
+          <button
+            type="button"
+            onClick={() => navigate('/register')}
+            className="btn"
+            style={{ background: 'none', color: '#646cff' }}
+          >
+            회원가입
+          </button>
+        </div>
+      </form>
     </div>
   );
 } 

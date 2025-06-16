@@ -1,98 +1,113 @@
 import { useNavigate } from 'react-router-dom';
+import useApi from '@/hooks/useApi';
+import authApi from '@/api/auth';
+import { useEffect } from 'react';
+import { useState } from 'react';
 
 export default function Register() {
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
+  const signup = useApi(
+    authApi.signup
+  )
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 회원가입 로직 구현
-    navigate('/login');
+    signup.request({
+      email: e.target.email.value,
+      password: e.target.password.value,
+      name: e.target.name.value
+    })
   };
 
+  useEffect(() => {
+    if (signup.error) {
+      setErrorMessage(signup.error.message);
+      setTimeout(() => setErrorMessage(''), 3000);
+    }
+  }, [signup.error]);
+
+  useEffect(() => {
+    setLoading(signup.loading)
+  }, [signup.loading])
+
+  useEffect(() => {
+    if (signup.data) {
+      navigate('/login');
+    }
+  }, [signup.data]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            회원가입
-          </h2>
+    <div className="container">
+      <h2 className="text-center mb-4">회원가입</h2>
+      {errorMessage && (
+        <div style={{
+          backgroundColor: '#ffcccc',
+          color: '#990000',
+          padding: '10px',
+          marginBottom: '10px',
+          borderRadius: '4px',
+          textAlign: 'center'
+        }}>
+          {errorMessage}
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                이름
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="이름"
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
-                이메일
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="이메일"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                비밀번호
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="비밀번호"
-              />
-            </div>
-            <div>
-              <label htmlFor="password-confirm" className="sr-only">
-                비밀번호 확인
-              </label>
-              <input
-                id="password-confirm"
-                name="password-confirm"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="비밀번호 확인"
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              회원가입
-            </button>
-          </div>
-
-          <div className="text-sm text-center">
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              로그인으로 돌아가기
-            </button>
-          </div>
-        </form>
-      </div>
+      )}
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="name">이름</label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            required
+            placeholder="이름"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="email">이메일</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            placeholder="이메일"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">비밀번호</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            placeholder="비밀번호"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password-confirm">비밀번호 확인</label>
+          <input
+            id="password-confirm"
+            name="password-confirm"
+            type="password"
+            required
+            placeholder="비밀번호 확인"
+          />
+        </div>
+        <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
+          회원가입
+        </button>
+        <div className="text-center mt-4">
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="btn"
+            style={{ background: 'none', color: '#646cff' }}
+          >
+            로그인으로 돌아가기
+          </button>
+        </div>
+      </form>
     </div>
   );
 } 
