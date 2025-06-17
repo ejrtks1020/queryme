@@ -10,6 +10,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.routes_auth import router as auth_router
+from models import Session, User
 from common.db.maria import Base, engine
 
 @asynccontextmanager
@@ -20,7 +21,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(auth_router, prefix="/auth")
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,7 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+// @ts-ignore
 import useApi from '@/hooks/useApi';
+// @ts-ignore
 import authApi from '@/api/auth';
 import { useEffect, useState } from 'react';
+// @ts-ignore
+import { setUserInfo } from '@/utils/storage';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -11,11 +15,15 @@ export default function Login() {
   const login = useApi(
     authApi.login
   )
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const target = e.target as typeof e.target & {
+      email: { value: string };
+      password: { value: string };
+    };
     login.request({
-      email: e.target.email.value,
-      password: e.target.password.value
+      email: target.email.value,
+      password: target.password.value
     })
   };
 
@@ -32,9 +40,18 @@ export default function Login() {
 
   useEffect(() => {
     if (login.data) {
-      navigate('/');
+      // 로그인 성공 시 유저 정보를 로컬스토리지에 저장
+      console.log("@@@@@@@@@@@@@@ login.data : ",login.data);
+      if (login.data.data) {
+        console.log("유저 정보 저장 중:", login.data.data);
+        setUserInfo(login.data.data);
+        console.log("유저 정보 저장 완료");
+        
+      } else {
+        console.log("login.data.data가 없음");
+      }
     }
-  }, [login.data]);
+  }, [login.data, navigate]);
 
   return (
     <div className="container">

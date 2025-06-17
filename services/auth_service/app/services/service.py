@@ -10,7 +10,7 @@ async def create_user_service(user: UserCreate):
 async def authenticate_user_service(email: str, password: str):
     user = await authenticate_user(email)
     if user and verify_password(password, user.hashed_password):
-        return user
+        return UserModel.model_validate(user)
     return None
 
 async def get_user_by_id_service(user_id: int):

@@ -3,6 +3,7 @@ import MainLayout from '@/layout/MainLayout';
 import Home from '@/views/Home';
 import Login from '@/views/auth/Login';
 import Register from '@/views/auth/Register';
+import AuthGuard from '@/components/AuthGuard';
 
 export const MainRoutes = {
   path: '/',
@@ -10,19 +11,35 @@ export const MainRoutes = {
   children: [
     {
       index: true,
-      element: <Home />,
+      element: (
+        <AuthGuard requireAuth={true}>
+          <Home />
+        </AuthGuard>
+      ),
     },
     {
       path: 'login',
-      element: <Login />,
+      element: (
+        <AuthGuard requireAuth={false}>
+          <Login />
+        </AuthGuard>
+      ),
     },
     {
       path: 'register',
-      element: <Register />,
+      element: (
+        <AuthGuard requireAuth={false}>
+          <Register />
+        </AuthGuard>
+      ),
     },
     {
       path: '*',
-      element: <Navigate to="/login" replace />,
+      element: (
+        <AuthGuard requireAuth={false}>
+          <Navigate to="/login" replace />
+        </AuthGuard>
+      ),
     },
   ],
 } 
