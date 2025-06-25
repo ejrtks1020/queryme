@@ -9,7 +9,7 @@ if PROFILE == "local":
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api.routes_auth import router as auth_router
+from api.auth_router import router as auth_router
 from models import Session, User
 from common.db.maria import Base, engine
 
