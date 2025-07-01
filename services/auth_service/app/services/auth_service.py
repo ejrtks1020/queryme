@@ -1,5 +1,6 @@
-from crud.user import create_user, authenticate_user, get_user_by_id
-from schemas.user import UserCreate, UserModel
+from crud.user_crud import create_user, authenticate_user, get_user_by_id
+from schemas.request import UserCreate
+from schemas.user import UserModel
 from core.security import get_password_hash, verify_password
 
 async def create_user_service(user: UserCreate):

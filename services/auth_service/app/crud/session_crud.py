@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, and_, select
 from models.session import Session as SessionModel
 from models.user import User
-from common.db.maria import async_transactional
+from db.maria import async_transactional
 from schemas.user import UserModel
 
 @async_transactional

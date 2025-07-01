@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from common.db.maria import Base
+from db.maria import Base
 
 class Session(Base):
     __tablename__ = "sessions"

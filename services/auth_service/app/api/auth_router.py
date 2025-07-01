@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from schemas.user import UserCreate, UserLogin, UserModel
-from services.service import create_user_service, authenticate_user_service
+from schemas.request import UserCreate, UserLogin
+from schemas.user import UserModel
+from services import auth_service
 from fastapi.responses import JSONResponse
 from core.security import get_current_user
-from crud.session import create_session, remove_session
+from crud.session_crud import create_session, remove_session
 from common.schemas.http import SuccessResponse, ErrorResponse
 
 router = APIRouter()
@@ -13,7 +14,7 @@ router = APIRouter()
     response_model=SuccessResponse[UserModel]
 )
 async def signup(user: UserCreate):
-    response = await create_user_service(user)
+    response = await auth_service.create_user_service(user)
     return SuccessResponse(data=response)
 
 @router.post(
@@ -21,7 +22,7 @@ async def signup(user: UserCreate):
     response_model=SuccessResponse[UserModel]
 )
 async def login(request: UserLogin):
-    user = await authenticate_user_service(request.email, request.password)
+    user = await auth_service.authenticate_user_service(request.email, request.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

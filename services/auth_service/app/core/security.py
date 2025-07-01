@@ -4,13 +4,13 @@ from jwt.exceptions import InvalidTokenError
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import OAuth2PasswordBearer
-from crud.user import get_user_by_id
+from crud.user_crud import get_user_by_id
 import os
 from core.config import settings
 from typing import Annotated
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from schemas.user import UserModel
-from crud.session import get_current_user_from_session
+from crud.session_crud import get_current_user_from_session
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()

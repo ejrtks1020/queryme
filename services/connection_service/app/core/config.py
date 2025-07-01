@@ -16,13 +16,8 @@ class Config:
         get_env_path(PROFILE)
     ]
     env_file_encoding = 'utf-8'
-class Settings(BaseSettings):
-    class Config(Config):
-        pass
 
-    SECRET_KEY: str = "your-secret"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
 class DBConfig(BaseSettings):
     class Config(Config):
         pass    
@@ -32,5 +27,14 @@ class DBConfig(BaseSettings):
     DB_PORT: str
     DB_NAME: str
 
-settings = Settings()
+# class Settings(BaseSettings):
+#     class Config(Config):
+#         pass
+
+#     SECRET_KEY: str = "your-secret"
+#     ALGORITHM: str = "HS256"
+#     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+# settings = Settings()
+
 db_config = DBConfig()

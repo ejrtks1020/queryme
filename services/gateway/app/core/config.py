@@ -27,17 +27,26 @@ class GatewaySettings(BaseSettings):
     
     # Gateway server settings
     gateway_host: str = "0.0.0.0"
-    gateway_port: int = 8081
+    gateway_port: int = 8080
     
     # Auth Service settings (환경 변수로 오버라이드 가능)
     auth_service_host_local: str = "localhost"
-    auth_service_port_local: int = 8080
+    auth_service_port_local: int = 8081
     auth_service_host_prod: str = "auth_service"
-    auth_service_port_prod: int = 8080
+    auth_service_port_prod: int = 8081
+    
+    # Connection Service settings (환경 변수로 오버라이드 가능)
+    connection_service_host_local: str = "localhost"
+    connection_service_port_local: int = 8082
+    connection_service_host_prod: str = "connection_service"
+    connection_service_port_prod: int = 8082
     
     # Custom auth service settings (환경 변수로 오버라이드 가능)
     auth_service_host: str = ""
-    auth_service_port: int = 0
+    auth_service_port: int = 0 
+
+    connection_service_host: str = ""
+    connection_service_port: int = 0
 
     cors_origins: list[str] = ["*"]
 
@@ -73,6 +82,18 @@ class GatewaySettings(BaseSettings):
         else:
             raise ValueError(f"Unknown profile: {self.profile}. Supported profiles: local, prod")
     
+    def get_connection_service_url(self) -> str:
+        """환경에 따른 Connection Service URL을 반환합니다."""
+        if self.connection_service_host and self.connection_service_port:
+            return f"http://{self.connection_service_host}:{self.connection_service_port}"
+        
+        if self.profile == "local":
+            return f"http://{self.connection_service_host_local}:{self.connection_service_port_local}"
+        elif self.profile == "prod":
+            return f"http://{self.connection_service_host_prod}:{self.connection_service_port_prod}"
+        else:
+            raise ValueError(f"Unknown profile: {self.profile}. Supported profiles: local, prod")
+    
     def get_service_info(self) -> Dict:
         """서비스 정보를 반환합니다."""
         return {
@@ -83,6 +104,9 @@ class GatewaySettings(BaseSettings):
             },
             "auth_service": {
                 "url": self.get_auth_service_url()
+            },
+            "connection_service": {
+                "url": self.get_connection_service_url()
             }
         }
 

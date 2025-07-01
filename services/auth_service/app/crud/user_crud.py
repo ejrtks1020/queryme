@@ -1,8 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.user import User
-from schemas.user import UserCreate
-from common.db.maria import async_transactional
+from schemas.request import UserCreate
+from db.maria import async_transactional
 
 @async_transactional
 async def create_user(user: UserCreate, hashed_pw: str, session: AsyncSession = None):

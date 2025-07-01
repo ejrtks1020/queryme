@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean
-from common.db.maria import Base
+from db.maria import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 class User(Base):
