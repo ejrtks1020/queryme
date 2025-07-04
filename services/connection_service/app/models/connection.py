@@ -7,6 +7,7 @@ class Connection(Base):
     __tablename__ = "connection"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    connection_name: Mapped[str] = mapped_column(String(255))
     database_name: Mapped[str] = mapped_column(String(255))
     database_type: Mapped[str] = mapped_column(String(255))
     database_url: Mapped[str] = mapped_column(String(255), nullable=True)

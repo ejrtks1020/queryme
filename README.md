@@ -1,4 +1,4 @@
-# 🧠 QueryMe (NL2SQL Platform)
+# QueryMe (NL2SQL Platform)
 
 ## 📌 프로젝트 개요
 

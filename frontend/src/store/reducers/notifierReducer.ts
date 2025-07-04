@@ -1,10 +1,35 @@
 import { ENQUEUE_SNACKBAR, CLOSE_SNACKBAR, REMOVE_SNACKBAR } from '../actions'
 
-export const initialState = {
+interface Notification {
+    key: string;
+    message: string;
+    options: {
+        variant: string;
+        autoHideDuration: number;
+        anchorOrigin: {
+            vertical: string;
+            horizontal: string;
+        };
+    };
+    dismissed?: boolean;
+}
+
+interface NotifierState {
+    notifications: Notification[];
+}
+
+export const initialState: NotifierState = {
     notifications: []
 }
 
-const notifierReducer = (state = initialState, action) => {
+interface Action {
+    type: string;
+    key?: string;
+    notification?: any;
+    dismissAll?: boolean;
+}
+
+const notifierReducer = (state: NotifierState = initialState, action: Action): NotifierState => {
     switch (action.type) {
         case ENQUEUE_SNACKBAR:
             return {
@@ -12,7 +37,7 @@ const notifierReducer = (state = initialState, action) => {
                 notifications: [
                     ...state.notifications,
                     {
-                        key: action.key,
+                        key: action.key || '',
                         ...action.notification
                     }
                 ]
@@ -37,4 +62,4 @@ const notifierReducer = (state = initialState, action) => {
     }
 }
 
-export default notifierReducer
+export default notifierReducer 

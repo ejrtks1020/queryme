@@ -6,27 +6,28 @@ import { useState } from 'react';
 
 export default function Register() {
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
-  const signup = useApi(
-    authApi.signup
-  )
+  const signup = useApi(authApi.signup, {
+    showErrorMessage: true
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const target = e.target as typeof e.target & {
+      email: { value: string };
+      password: { value: string };
+      name: { value: string };
+    };
+
     signup.request({
-      email: e.target.email.value,
-      password: e.target.password.value,
-      name: e.target.name.value
+      email: target.email.value,
+      password: target.password.value,
+      name: target.name.value
     })
   };
 
-  useEffect(() => {
-    if (signup.error) {
-      setErrorMessage(signup.error.message);
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
-  }, [signup.error]);
+
 
   useEffect(() => {
     setLoading(signup.loading)
@@ -41,18 +42,6 @@ export default function Register() {
   return (
     <div className="container">
       <h2 className="text-center mb-4">회원가입</h2>
-      {errorMessage && (
-        <div style={{
-          backgroundColor: '#ffcccc',
-          color: '#990000',
-          padding: '10px',
-          marginBottom: '10px',
-          borderRadius: '4px',
-          textAlign: 'center'
-        }}>
-          {errorMessage}
-        </div>
-      )}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="name">이름</label>

@@ -1,5 +1,5 @@
 // 쿠키 값 가져오기 (HttpOnly 쿠키는 접근 불가)
-export const getCookie = (name) => {
+export const getCookie = (name: string) => {
   if (!document.cookie) {
     return null;
   }
@@ -17,7 +17,7 @@ export const getCookie = (name) => {
 };
 
 // 쿠키 삭제
-export const deleteCookie = (name) => {
+export const deleteCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 

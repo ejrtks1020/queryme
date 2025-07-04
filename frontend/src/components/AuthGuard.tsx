@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-// @ts-ignore
-import { getUserInfo, setUserInfo, clearAuthData } from '@/utils/storage';
-// @ts-ignore
+import { getUserInfo, setUserInfo, clearAuthData } from '@/utils/storage.ts';
 import authApi from '@/api/auth';
 
 interface AuthGuardProps {
@@ -14,10 +12,19 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const checkingAuth = useRef(false); // 인증 확인 중복 실행 방지
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            console.log("checkAuth 실행");
+    const checkAuth = useCallback(async () => {
+        // 이미 인증 확인 중이면 실행하지 않음
+        if (checkingAuth.current) {
+            console.log("checkAuth 이미 실행 중 - 스킵");
+            return;
+        }
+
+        checkingAuth.current = true;
+        console.log("checkAuth 실행");
+        
+        try {
             const userInfo = getUserInfo();
             console.log("저장된 유저정보:", userInfo);
 
@@ -45,20 +52,35 @@ export default function AuthGuard({ children, requireAuth = true }: AuthGuardPro
             }
 
             setIsLoading(false);
-        };
+        } finally {
+            checkingAuth.current = false;
+        }
+    }, []);
 
+    useEffect(() => {
         checkAuth();
         
         // 유저 정보 변경을 감지하여 인증 상태 업데이트
         const handleUserInfoChange = (event: Event) => {
             const customEvent = event as CustomEvent;
             console.log("유저 정보 변경 감지:", customEvent.detail);
+            
+            // 현재 로컬스토리지 상태와 인증 상태를 즉시 확인
+            const currentUserInfo = getUserInfo();
+            const shouldBeAuthenticated = !!currentUserInfo;
+            
+            // 상태가 이미 일치하면 checkAuth 호출하지 않음
+            if (shouldBeAuthenticated === isAuthenticated && !isLoading) {
+                console.log("인증 상태가 이미 일치함 - checkAuth 스킵");
+                return;
+            }
+            
             checkAuth();
         };
         
         window.addEventListener('userInfoChanged', handleUserInfoChange);
         return () => window.removeEventListener('userInfoChanged', handleUserInfoChange);
-    }, []);
+    }, [checkAuth, isAuthenticated, isLoading]);
 
     useEffect(() => {
         console.log("AuthGuard 상태:", { isLoading, isAuthenticated, requireAuth });

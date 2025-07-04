@@ -1,5 +1,5 @@
 // 유저 정보 저장
-export const setUserInfo = (userInfo, triggerEvent = true) => {
+export const setUserInfo = (userInfo: any, triggerEvent = true) => {
   localStorage.setItem('user_info', JSON.stringify(userInfo));
   // 커스텀 이벤트 발생으로 AuthGuard에게 알림 (선택적)
   if (triggerEvent) {
@@ -29,4 +29,19 @@ export const clearAuthData = () => {
 // 로그아웃 (clearAuthData와 동일하지만 명시적)
 export const logout = () => {
   clearAuthData();
+};
+
+// 토큰 저장
+export const setAuthToken = (token: string) => {
+  localStorage.setItem('auth_token', token);
+};
+
+// 토큰 가져오기
+export const getAuthToken = () => {
+  return localStorage.getItem('auth_token');
+};
+
+// 토큰 삭제
+export const removeAuthToken = () => {
+  localStorage.removeItem('auth_token');
 }; 

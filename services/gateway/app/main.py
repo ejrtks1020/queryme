@@ -2,6 +2,8 @@ import os
 import sys
 import logging
 from contextlib import asynccontextmanager
+import traceback
+from fastapi.responses import JSONResponse
 
 from core.config import settings, PROFILE
 
@@ -10,10 +12,12 @@ if PROFILE == "local":
     sys.path.append(project_root)
 
 from core.proxy import proxy_service
+from core.middleware.auth import AuthMiddleware
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.auth_router import router as auth_router
+from routers.connection_router import router as connection_router
 from common.core.logger import Logger
 
 logger = Logger.getLogger(__name__)
@@ -48,8 +52,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 인증 미들웨어 추가
+app.add_middleware(AuthMiddleware)
+
+# # 예외 처리 미들웨어 추가
+# app.add_middleware(ExceptionMiddleware)
+
 # 라우터 등록
 app.include_router(auth_router)
+app.include_router(connection_router)
+
+@app.exception_handler(Exception)
+async def exception_handler(request, exc: Exception):
+    logger.error(f"Unhandled exception: {traceback.format_exc()}")
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error!!!"}
+    )
+    return response
 
 
 @app.get("/")

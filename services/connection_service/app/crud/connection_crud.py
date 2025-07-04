@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.request import (
     ConnectionCreateRequest,
@@ -49,3 +50,12 @@ async def delete_connection(request: ConnectionDeleteRequest, session: AsyncSess
     connection = await session.get(Connection, request.connection_id)
     connection.is_active = False
     return connection
+
+@async_transactional
+async def get_connection_list(user_id: int, session: AsyncSession = None):
+    query = select(Connection).where(
+        Connection.is_active == True, 
+        Connection.reg_user_id == user_id)
+    result = await session.execute(query)
+    connections = result.scalars().all()
+    return connections

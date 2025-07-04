@@ -21,3 +21,7 @@ async def update_connection_service(request: ConnectionUpdateRequest):
 async def delete_connection_service(request: ConnectionDeleteRequest):
     connection = await connection_crud.delete_connection(request)
     return ConnectionModel.model_validate(connection)
+
+async def get_connection_list_service(user_id: int):
+    connections = await connection_crud.get_connection_list(user_id)
+    return [ ConnectionModel.model_validate(connection) for connection in connections ]

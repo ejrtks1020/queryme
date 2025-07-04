@@ -1,20 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-// @ts-ignore
 import useApi from '@/hooks/useApi';
-// @ts-ignore
 import authApi from '@/api/auth';
 import { useEffect, useState } from 'react';
-// @ts-ignore
-import { setUserInfo } from '@/utils/storage';
+import { setUserInfo } from '@/utils/storage.ts';
 
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
 
-  const login = useApi(
-    authApi.login
-  )
+  const login = useApi(authApi.login, {
+    showErrorMessage: true
+  })
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const target = e.target as typeof e.target & {
@@ -27,12 +23,7 @@ export default function Login() {
     })
   };
 
-  useEffect(() => {
-    if (login.error) {
-      setErrorMessage(login.error.message);
-      setTimeout(() => setErrorMessage(''), 3000);
-    }
-  }, [login.error]);
+
 
   useEffect(() => {
     setLoading(login.loading)
@@ -56,18 +47,6 @@ export default function Login() {
   return (
     <div className="container">
       <h2 className="text-center mb-4">로그인</h2>
-      {errorMessage && (
-        <div style={{
-          backgroundColor: '#ffcccc',
-          color: '#990000',
-          padding: '10px',
-          marginBottom: '10px',
-          borderRadius: '4px',
-          textAlign: 'center'
-        }}>
-          {errorMessage}
-        </div>
-      )}
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="email">이메일</label>
