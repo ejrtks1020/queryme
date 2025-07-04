@@ -16,8 +16,9 @@ from core.middleware.auth import AuthMiddleware
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers.auth_router import router as auth_router
-from routers.connection_router import router as connection_router
+from api.auth_router import router as auth_router
+from api.connection_router import router as connection_router
+from api.nl2sql_router import router as nl2sql_router
 from common.core.logger import Logger
 
 logger = Logger.getLogger(__name__)
@@ -28,6 +29,8 @@ async def lifespan(app: FastAPI):
     """애플리케이션 라이프사이클 관리"""
     logger.info(f"Gateway starting with profile: {settings.profile}")
     logger.info(f"Auth service URL: {settings.get_auth_service_url()}")
+    logger.info(f"Connection service URL: {settings.get_connection_service_url()}")
+    logger.info(f"NL2SQL service URL: {settings.get_nl2sql_service_url()}")
     
     yield
     
@@ -61,6 +64,7 @@ app.add_middleware(AuthMiddleware)
 # 라우터 등록
 app.include_router(auth_router)
 app.include_router(connection_router)
+app.include_router(nl2sql_router)
 
 @app.exception_handler(Exception)
 async def exception_handler(request, exc: Exception):

@@ -40,6 +40,12 @@ class GatewaySettings(BaseSettings):
     connection_service_port_local: int = 8082
     connection_service_host_prod: str = "connection_service"
     connection_service_port_prod: int = 8082
+
+    # NL2SQL Service settings (환경 변수로 오버라이드 가능)
+    nl2sql_service_host_local: str = "localhost"
+    nl2sql_service_port_local: int = 8083
+    nl2sql_service_host_prod: str = "nl2sql_service"
+    nl2sql_service_port_prod: int = 8083
     
     # Custom auth service settings (환경 변수로 오버라이드 가능)
     auth_service_host: str = ""
@@ -47,6 +53,9 @@ class GatewaySettings(BaseSettings):
 
     connection_service_host: str = ""
     connection_service_port: int = 0
+
+    nl2sql_service_host: str = ""
+    nl2sql_service_port: int = 0
 
     cors_origins: list[str] = ["*"]
 
@@ -94,6 +103,18 @@ class GatewaySettings(BaseSettings):
         else:
             raise ValueError(f"Unknown profile: {self.profile}. Supported profiles: local, prod")
     
+    def get_nl2sql_service_url(self) -> str:
+        """환경에 따른 NL2SQL Service URL을 반환합니다."""
+        if self.nl2sql_service_host and self.nl2sql_service_port:
+            return f"http://{self.nl2sql_service_host}:{self.nl2sql_service_port}"
+        
+        if self.profile == "local":
+            return f"http://{self.nl2sql_service_host_local}:{self.nl2sql_service_port_local}"
+        elif self.profile == "prod":
+            return f"http://{self.nl2sql_service_host_prod}:{self.nl2sql_service_port_prod}"
+        else:
+            raise ValueError(f"Unknown profile: {self.profile}. Supported profiles: local, prod")
+    
     def get_service_info(self) -> Dict:
         """서비스 정보를 반환합니다."""
         return {
@@ -107,6 +128,9 @@ class GatewaySettings(BaseSettings):
             },
             "connection_service": {
                 "url": self.get_connection_service_url()
+            },
+            "nl2sql_service": {
+                "url": self.get_nl2sql_service_url()
             }
         }
 

@@ -127,6 +127,14 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     }
   };
 
+  // 연결 메뉴 클릭 핸들러
+  const handleConnectionClick = ({ key }: { key: string }) => {
+    if (key.startsWith('conn-')) {
+      const connectionId = key.replace('conn-', '');
+      navigate(`/query/${connectionId}`);
+    }
+  };
+
   // 사용자 드롭다운 메뉴
   const userDropdownItems = [
     {
@@ -238,6 +246,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
             icon: <DatabaseOutlined />,
             label: collapsed ? '' : conn.database_name,
           }))}
+          onClick={handleConnectionClick}
         />
       </div>
 
