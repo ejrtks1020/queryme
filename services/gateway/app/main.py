@@ -46,6 +46,28 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+"""
+요청 들어옴
+    ↓
+1. CORSMiddleware (요청 처리)
+    ↓
+2. AuthMiddleware (요청 처리)
+    ↓
+3. 실제 라우터 핸들러
+    ↓
+2. AuthMiddleware (응답 처리) ← 여기서 JSONResponse 직접 반환
+    ↓
+1. CORSMiddleware (응답 처리) ← 실행되지 않음!
+    ↓
+브라우저로 응답
+
+AuthMiddleware에서 JSONResponse를 직접 반환하면 그 다음 단계들이 실행되지 않음
+특히 CORSMiddleware의 응답 처리 단계가 건너뛰어짐 -> 결과적으로 CORS 헤더가 추가되지 않음
+실제로는 CORS 헤더를 직접 추가하는 것보다, 미들웨어 순서를 바꾸는 것이 더 좋음
+"""
+# 인증 미들웨어 추가
+app.add_middleware(AuthMiddleware)
+
 # CORS 미들웨어 설정
 app.add_middleware(
     CORSMiddleware,
@@ -54,9 +76,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# 인증 미들웨어 추가
-app.add_middleware(AuthMiddleware)
 
 # # 예외 처리 미들웨어 추가
 # app.add_middleware(ExceptionMiddleware)

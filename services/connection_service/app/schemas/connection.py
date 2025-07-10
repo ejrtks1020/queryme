@@ -3,6 +3,7 @@ from datetime import datetime
 
 class ConnectionModel(BaseModel):
     id: int
+    connection_name: str
     database_type: str
     database_name: str
     database_url: str | None = None

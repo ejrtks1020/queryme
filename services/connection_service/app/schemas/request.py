@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class ConnectionCreateRequest(BaseModel):
     user_id: int
+    connection_name: str
     database_name: str
     database_type: str
     database_url: str | None = None
@@ -16,6 +17,7 @@ class ConnectionCreateRequest(BaseModel):
         "json_schema_extra": {
             "example": {
                 "user_id": 1,
+                "connection_name": "test_connection",
                 "database_name": "test_data",
                 "database_type": "mysql",
                 "database_url": "mysql+pymysql://root:queryme1!@localhost:3306/test_data",
@@ -30,6 +32,7 @@ class ConnectionCreateRequest(BaseModel):
 
 class ConnectionUpdateRequest(BaseModel):
     connection_id: int
+    connection_name: str
     database_name: str
     database_type: str
     database_url: str | None = None

@@ -14,7 +14,7 @@ import useApi from '@/hooks/useApi';
 import authApi from '@/api/auth';
 import { clearAuthData, getUserInfo } from '@/utils/storage';
 import connectionApi from '@/api/connection';
-import ConnectionDialog from '@/components/dialog/ConnectionDialog';
+import ConnectionDialog from '@/components/dialog/connection/ConnectionCreateDialog';
 import { useDispatch } from 'react-redux';
 import { SET_CONNECTIONS } from '@/store/actions';
 import { useSelector } from 'react-redux';
@@ -57,10 +57,6 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   useEffect(() => {
     getConnectionList.request();
   }, []);
-
-  useEffect(() => {
-    console.log('@@@@@@@@@@@@@@@@@ connections', connections);
-  }, [connections]);
 
   useEffect(() => {
     if (getConnectionList.data) {
@@ -190,7 +186,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         textAlign: 'center'
       }}>
         {!collapsed ? (
-          <h2 style={{ margin: 0, color: '#1890ff' }}>QueryMe</h2>
+          <h2 style={{ margin: 0, color: '#1890ff' }}></h2>
         ) : (
           <div style={{ fontSize: '18px', color: '#1890ff', fontWeight: 'bold' }}>Q</div>
         )}
@@ -244,7 +240,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
           items={connections.map((conn: any) => ({
             key: `conn-${conn.id}`,
             icon: <DatabaseOutlined />,
-            label: collapsed ? '' : conn.database_name,
+            label: collapsed ? '' : conn.connection_name,
           }))}
           onClick={handleConnectionClick}
         />

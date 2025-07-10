@@ -1,8 +1,12 @@
+import traceback
 import httpx
 from typing import Optional
 from fastapi import Request, Response
 from fastapi.responses import StreamingResponse
 from common.core.logger import Logger
+import asyncio
+import json
+import uuid
 
 logger = Logger.getLogger(__name__)
 
@@ -12,7 +16,7 @@ class ProxyService:
     
     def __init__(self):
         self.client = httpx.AsyncClient(
-            timeout=httpx.Timeout(30.0),
+            timeout=httpx.Timeout(connect=30.0, read=None, write=30.0, pool=30.0),  # SSE를 위해 read timeout 제거
             follow_redirects=True
         )
     
@@ -49,6 +53,9 @@ class ProxyService:
             body = await request.body()
             
             logger.info(f"Proxying {request.method} {request.url.path} -> {full_target_url}")
+
+            trace_info = self._generate_new_trace_info()
+            headers.update(trace_info)
             
             # 요청 전달
             response = await self.client.request(
@@ -58,26 +65,45 @@ class ProxyService:
                 content=body,
             )
             
-            # 응답 헤더 필터링
+            # 응답 헤더 필터링 및 SSE 헤더 추가
             filtered_headers = self._filter_response_headers(response.headers)
+            content_type = response.headers.get("content-type", "")
             
-            # 스트리밍 응답 반환
-            return StreamingResponse(
-                self._generate_response_content(response),
-                status_code=response.status_code,
-                headers=filtered_headers,
-                media_type=response.headers.get("content-type")
-            )
+            # SSE인 경우 특별한 헤더 추가
+            if "text/event-stream" in content_type:
+                filtered_headers.update({
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",  # nginx 버퍼링 비활성화
+                })
+                
+                logger.info("SSE 스트리밍 응답 감지 - 특별한 헤더 추가")
+                
+                # SSE 스트리밍 응답 반환
+                return StreamingResponse(
+                    self._generate_sse_content(response),
+                    status_code=response.status_code,
+                    headers=filtered_headers,
+                    media_type=content_type
+                )
+            else:
+                # 일반 스트리밍 응답 반환
+                return StreamingResponse(
+                    self._generate_response_content(response),
+                    status_code=response.status_code,
+                    headers=filtered_headers,
+                    media_type=content_type
+                )
             
         except httpx.RequestError as e:
-            logger.error(f"Request error while proxying to {target_url}: {e}")
+            logger.error(f"Request error while proxying to {target_url}: {traceback.format_exc()}")
             return Response(
                 content=f"Service unavailable: {str(e)}",
                 status_code=503,
                 media_type="text/plain"
             )
         except Exception as e:
-            logger.error(f"Unexpected error while proxying to {target_url}: {e}")
+            logger.error(f"Unexpected error while proxying to {target_url}: {traceback.format_exc()}")
             return Response(
                 content="Internal server error",
                 status_code=500,
@@ -104,6 +130,34 @@ class ProxyService:
         """응답 내용을 스트리밍으로 생성합니다."""
         async for chunk in response.aiter_bytes():
             yield chunk
+    
+    async def _generate_sse_content(self, response: httpx.Response):
+        """SSE 응답 내용을 최적화된 방식으로 스트리밍합니다."""
+        try:
+            async for line in response.aiter_lines():
+                await asyncio.sleep(0.1)
+                
+                if line:  # 빈 라인이 아닌 경우
+                    # print(f"@@@@@@@@@@@@@@@@@ line: ", repr(line))
+                    line = line.replace('<NL>', '\n')
+                    yield f"{line}"
+        except Exception as e:
+            logger.error(f"Error during SSE streaming: {e}")
+            yield f"data: Error during streaming: {str(e)}\n\n"
+
+    def _generate_new_trace_info(self):
+        trace_info = {
+            # 기존 필드
+            "x-trace-id": str(uuid.uuid4()),
+            "x-session-id": str(uuid.uuid4()),
+            
+            # 추가 추적 필드
+            "x-span-id": str(uuid.uuid4()),           # 개별 작업 단위 식별
+            "x-parent-span-id": "",                   # 부모 작업과의 연결
+            "x-request-id": str(uuid.uuid4()),        # 개별 요청 식별
+            "x-correlation-id": str(uuid.uuid4()),    # 관련 요청들 그룹핑
+        }
+        return trace_info
     
     async def close(self):
         """HTTP 클라이언트를 정리합니다."""

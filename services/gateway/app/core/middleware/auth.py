@@ -40,10 +40,18 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         if user_info is None:
             logger.warning(f"Failed to get user info for request: {request.url.path}")
-            return JSONResponse(
+            response = JSONResponse(
                 status_code=401,
                 content={"detail": "Authentication required"}
             )
+            
+            # CORS 헤더 직접 추가
+            # response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+            # response.headers["Access-Control-Allow-Credentials"] = "true"
+            # response.headers["Access-Control-Allow-Methods"] = "*"
+            # response.headers["Access-Control-Allow-Headers"] = "*"
+            
+            return response
         
         # 사용자 정보를 헤더에 추가
         user_info_json = json.dumps(user_info, ensure_ascii=False)

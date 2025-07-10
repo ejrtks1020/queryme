@@ -37,7 +37,6 @@ export default (apiFunc: any, options: UseApiOptions = {}) => {
     const request = async (...args: any[]) => {
         setLoading(true)
         try {
-            console.log('request', args)
             const result = await apiFunc(...args)
             setData(result.data)
             

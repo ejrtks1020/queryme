@@ -17,5 +17,6 @@ class Connection(Base):
     database_host: Mapped[str] = mapped_column(String(255), nullable=True)
     database_table: Mapped[str] = mapped_column(String(255))
     reg_user_id: Mapped[int] = mapped_column(Integer)
-    reg_date: Mapped[datetime] = mapped_column(DateTime)
+    reg_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    mod_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

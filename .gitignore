@@ -6,7 +6,7 @@ dist
 #**/__init__.py
 **/__pycache__
 
-
+services/nl2sql_service/app/env/
 # ----- admin-front ------
 
 # Logs

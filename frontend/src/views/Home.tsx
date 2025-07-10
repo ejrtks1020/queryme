@@ -10,7 +10,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined
 } from '@ant-design/icons';
-import ConnectionDialog from '@/components/dialog/ConnectionDialog';
+import ConnectionDialog from '@/components/dialog/connection/ConnectionCreateDialog';
 
 export default function Home() {
   const [connectionDialogVisible, setConnectionDialogVisible] = useState(false);

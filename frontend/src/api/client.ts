@@ -16,14 +16,13 @@ const apiClient = axios.create({
 
 apiClient.interceptors.response.use(
     (response) => {
-        // console.log('@@@@@@@@@@@@@@@@@ response', response)
+        console.log('@@@@@@@@@@@@@@@@200 response', response)
         return response
     },
     (error) => {
         if (error.response?.status === 401) {
-            // console.log('@@@@@@@@@@@@@@@@@ error', error)
-            // console.log('@@@@@@@@@@@@@@@@@ 401 error')
             // 세션 만료시 자동으로 로그아웃 처리
+            console.log('@@@@@@@@@@@@@@@@401 error')
             clearAuthData();
             // window.location.href = '/login';
         }

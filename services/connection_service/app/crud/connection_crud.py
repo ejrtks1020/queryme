@@ -12,6 +12,7 @@ from db.maria import async_transactional
 @async_transactional
 async def create_connection(request: ConnectionCreateRequest, session: AsyncSession = None):
     db_connection = Connection(
+        connection_name=request.connection_name,
         database_name=request.database_name,
         database_type=request.database_type,
         database_url=request.database_url,
@@ -35,14 +36,17 @@ async def get_connection(connection_id: int, session: AsyncSession = None):
 @async_transactional
 async def update_connection(request: ConnectionUpdateRequest, session: AsyncSession = None):
     connection = await session.get(Connection, request.connection_id)
-    connection.database_name = connection.database_name
-    connection.database_type = connection.database_type
-    connection.database_url = connection.database_url
-    connection.database_username = connection.database_username
-    connection.database_password = connection.database_password
-    connection.database_port = connection.database_port
-    connection.database_host = connection.database_host
-    connection.database_table = connection.database_table
+    connection.connection_name = request.connection_name
+    connection.database_name = request.database_name
+    connection.database_type = request.database_type
+    connection.database_url = request.database_url
+    connection.database_username = request.database_username
+    connection.database_password = request.database_password
+    connection.database_port = request.database_port
+    connection.database_host = request.database_host
+    connection.database_table = request.database_table
+    connection.mod_date = datetime.now()
+    session.add(connection)
     return connection
 
 @async_transactional
