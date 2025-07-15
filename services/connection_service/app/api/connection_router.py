@@ -25,7 +25,7 @@ async def create_connection(request: ConnectionCreateRequest, user_id: int = Dep
     "/get",
     response_model=SuccessResponse[ConnectionModel]
 )
-async def get_connection(connection_id: int, user_id: int = Depends(get_current_user_id)):
+async def get_connection(connection_id: str, user_id: int = Depends(get_current_user_id)):
     response = await connection_service.get_connection_service(connection_id)
     return SuccessResponse(data=response)
 

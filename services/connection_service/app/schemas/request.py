@@ -31,7 +31,7 @@ class ConnectionCreateRequest(BaseModel):
     }
 
 class ConnectionUpdateRequest(BaseModel):
-    connection_id: int
+    connection_id: str
     connection_name: str
     database_name: str
     database_type: str
@@ -59,7 +59,7 @@ class ConnectionUpdateRequest(BaseModel):
     }
 
 class ConnectionDeleteRequest(BaseModel):
-    connection_id: int
+    connection_id: str
 
     model_config = {
         "json_schema_extra": {

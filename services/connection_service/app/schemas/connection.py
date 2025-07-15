@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class ConnectionModel(BaseModel):
-    id: int
+    id: str 
     connection_name: str
     database_type: str
     database_name: str

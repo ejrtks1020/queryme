@@ -42,7 +42,7 @@ interface Message {
 }
 
 interface Connection {
-  id: number;
+  id: string;
   connection_name: string;
   database_name: string;
   database_type: string;

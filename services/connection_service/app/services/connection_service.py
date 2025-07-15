@@ -10,7 +10,7 @@ async def create_connection_service(request: ConnectionCreateRequest):
     connection = await connection_crud.create_connection(request)
     return ConnectionModel.model_validate(connection)
 
-async def get_connection_service(connection_id: int):
+async def get_connection_service(connection_id: str):
     connection = await connection_crud.get_connection(connection_id)
     return ConnectionModel.model_validate(connection)
 

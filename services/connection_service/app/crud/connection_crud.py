@@ -8,10 +8,12 @@ from schemas.request import (
 )
 from models.connection import Connection
 from db.maria import async_transactional
+from uuid import uuid4
 
 @async_transactional
 async def create_connection(request: ConnectionCreateRequest, session: AsyncSession = None):
     db_connection = Connection(
+        id=str(uuid4()),
         connection_name=request.connection_name,
         database_name=request.database_name,
         database_type=request.database_type,
@@ -29,7 +31,7 @@ async def create_connection(request: ConnectionCreateRequest, session: AsyncSess
 
 
 @async_transactional
-async def get_connection(connection_id: int, session: AsyncSession = None):
+async def get_connection(connection_id: str, session: AsyncSession = None):
     connection = await session.get(Connection, connection_id)
     return connection
 
