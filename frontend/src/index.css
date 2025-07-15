@@ -132,3 +132,47 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* 마크다운 코드 블록 스크롤바 스타일링 */
+.markdown-code-block::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.markdown-code-block::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.markdown-code-block::-webkit-scrollbar-thumb {
+  background-color: #d4d4d4;
+  border-radius: 3px;
+}
+
+.markdown-code-block::-webkit-scrollbar-thumb:hover {
+  background-color: #a8a8a8;
+}
+
+/* 사이드바 커스텀 스크롤바 스타일링 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #d4d4d4;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #a8a8a8;
+}
+
+/* 일반적인 스크롤바 스타일 (전체 적용) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d4 transparent;
+}

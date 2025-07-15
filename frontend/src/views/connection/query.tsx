@@ -28,6 +28,9 @@ import connectionApi from '@/api/connection';
 import nl2sqlApi from '@/api/nl2sql';
 import { clearAuthData } from '@/utils/storage';
 import ConnectionUpdateDialog from '@/components/dialog/connection/ConnectionUpdateDialog';
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -174,8 +177,7 @@ export default function QueryPage() {
               ...prev.slice(0, -1),
               {
                 ...lastMessage,
-                content: result,
-                result: { message: '쿼리 실행 완료' }
+                content: result
               }
             ];
           })          
@@ -264,40 +266,57 @@ export default function QueryPage() {
               border: isUser ? '1px solid #d6e4ff' : '1px solid #b7eb8f'
             }}
           >
-            <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
-            
-            {msg.sql && (
-              <div style={{ marginTop: '12px' }}>
-                <Divider style={{ margin: '8px 0' }} />
-                <Text strong>생성된 SQL:</Text>
-                <div style={{ 
-                  backgroundColor: '#f5f5f5', 
-                  padding: '8px', 
-                  borderRadius: '4px',
-                  marginTop: '4px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px'
-                }}>
-                  {msg.sql}
-                </div>
-              </div>
-            )}
-            
-            {msg.result && (
-              <div style={{ marginTop: '12px' }}>
-                <Divider style={{ margin: '8px 0' }} />
-                <Text strong>결과:</Text>
-                <div style={{ 
-                  backgroundColor: '#f5f5f5', 
-                  padding: '8px', 
-                  borderRadius: '4px',
-                  marginTop: '4px',
-                  fontSize: '12px'
-                }}>
-                  {JSON.stringify(msg.result, null, 2)}
-                </div>
-              </div>
-            )}
+            <ReactMarkdown
+              components={{
+                code({ node, inline, className, children, ...props }) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  return !inline && match ? (
+                    <SyntaxHighlighter
+                      style={oneLight}
+                      language={match[1]}
+                      PreTag="div"
+                      customStyle={{
+                        margin: '12px 0',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        lineHeight: '1.6',
+                        maxHeight: '400px',
+                        overflow: 'auto',
+                        border: '1px solid #e9ecef',
+                        backgroundColor: '#f8f9fa',
+                      }}
+                      codeTagProps={{
+                        style: {
+                          fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                        }
+                      }}
+                      {...props}
+                    >
+                      {String(children).replace(/\n$/, '')}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code 
+                      className={className} 
+                      style={{
+                        backgroundColor: '#f1f3f4',
+                        padding: '2px 4px',
+                        borderRadius: '3px',
+                        fontSize: '13px',
+                        fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                      }}
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  );
+                },
+                p({ children }) {
+                  return <div style={{ margin: '8px 0' }}>{children}</div>;
+                }
+              }}
+            >
+              {msg.content}
+            </ReactMarkdown>
           </Card>
         </div>
       </div>
