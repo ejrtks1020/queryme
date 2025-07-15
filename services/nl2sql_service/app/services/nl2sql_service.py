@@ -53,11 +53,11 @@ async def get_database_schema(connection_info: dict):
             
             if database_table and database_table.strip():
                 # 특정 테이블의 스키마만 조회
-                ic(f"특정 테이블 '{database_table}' 스키마 조회")
+                # ic(f"특정 테이블 '{database_table}' 스키마 조회")
                 schema_info[database_table] = await get_table_schema(session, database_table)
             else:
                 # 전체 데이터베이스의 모든 테이블 스키마 조회
-                ic("전체 데이터베이스 스키마 조회")
+                # ic("전체 데이터베이스 스키마 조회")
                 
                 # 모든 테이블 목록 조회
                 result = await session.execute(text("SHOW TABLES"))

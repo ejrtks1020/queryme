@@ -139,20 +139,32 @@ export default function ConnectionUpdateDialog({ visible, onClose, connectionDat
       const values = await form.validateFields();
       await handleConnectionSubmit(values);
       form.resetFields();
-      onClose(false);
+      // onClose(false)를 여기서 호출하지 말고 useEffect에서 처리
     } catch (error: any) {
       console.error('Connection update failed:', error);
-    } finally {
-      setLoading(false);
+      setLoading(false); // 에러 시에만 로딩 해제
     }
+
   };
   
   useEffect(() => {
     if (updateConnection.data) {
       console.log('Connection updated successfully:', updateConnection.data);
       getConnectionList.request();
+      // 업데이트 완료 후 다이얼로그 닫기
+      setLoading(false);
+      form.resetFields();
+      onClose(false);
     }
   }, [updateConnection.data]);
+
+  // 에러 처리 추가
+  useEffect(() => {
+    if (updateConnection.error) {
+      setLoading(false);
+      message.error('연결 업데이트에 실패했습니다.');
+    }
+  }, [updateConnection.error]);
 
   useEffect(() => {
     setLoading(updateConnection.loading)
