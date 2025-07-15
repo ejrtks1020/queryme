@@ -9,6 +9,7 @@ from icecream import ic
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
+from utils.nl2sql_utils import get_nl2sql_prompt
 logger = Logger.getLogger(__name__)
 
 
@@ -110,7 +111,8 @@ async def nl2sql_service(request: NL2SQLRequest, user_id: int, trace_info: str):
     # 데이터베이스 스키마 조회
     schema_info = await get_database_schema(connection_info)
     ic("데이터베이스 스키마:", schema_info)
-    
+
+    prompt = get_nl2sql_prompt(schema_info, request.query)
     async def nl2sql_streamer():
         async with aiohttp.ClientSession() as session:
             url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse"
@@ -123,7 +125,7 @@ async def nl2sql_service(request: NL2SQLRequest, user_id: int, trace_info: str):
                     {
                         "parts": [
                             {
-                                "text": request.query
+                                "text": prompt
                             }
                         ]
                     }
