@@ -61,7 +61,7 @@ async def delete_connection(request: ConnectionDeleteRequest, session: AsyncSess
 async def get_connection_list(user_id: int, session: AsyncSession = None):
     query = select(Connection).where(
         Connection.is_active == True, 
-        Connection.reg_user_id == user_id)
+        Connection.reg_user_id == user_id).order_by(Connection.reg_date.desc())
     result = await session.execute(query)
     connections = result.scalars().all()
     return connections

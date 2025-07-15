@@ -234,7 +234,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
           mode="inline"
           style={{ 
             border: 'none',
-            maxHeight: '400px',
+            maxHeight: 'calc(90vh - 320px)', // 반응형 높이 계산
             overflow: 'auto'
           }}
           items={connections.map((conn: any) => ({
