@@ -176,3 +176,42 @@ button:focus-visible {
   scrollbar-width: thin;
   scrollbar-color: #d4d4d4 transparent;
 }
+
+/* 타이핑 애니메이션 */
+@keyframes typing-dots {
+  0%, 20% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+/* 프로그레스 바 애니메이션 */
+@keyframes progress-loading {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* 로딩 펄스 애니메이션 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}

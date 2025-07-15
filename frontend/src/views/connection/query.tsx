@@ -195,6 +195,7 @@ export default function QueryPage() {
       );
 
     } catch (error) {
+      console.log('error', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
@@ -202,7 +203,6 @@ export default function QueryPage() {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -345,8 +345,23 @@ export default function QueryPage() {
         backgroundColor: 'white',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        position: 'relative'
       }}>
+        {/* 진행 상태 인디케이터 */}
+        {isLoading && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: 'linear-gradient(90deg, #1890ff, #52c41a)',
+            animation: 'progress-loading 2s infinite',
+            zIndex: 10
+          }} />
+        )}
+        
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Button 
             icon={<ArrowLeftOutlined />} 
@@ -360,6 +375,16 @@ export default function QueryPage() {
             <div>
               <Title level={4} style={{ margin: 0 }}>
                 {connection?.connection_name || connection?.database_name}
+                {isLoading && (
+                  <span style={{ 
+                    marginLeft: '8px',
+                    fontSize: '14px',
+                    color: '#52c41a',
+                    fontWeight: 'normal'
+                  }}>
+                    • 쿼리 처리 중...
+                  </span>
+                )}
               </Title>
               <Text type="secondary">
                 {connection?.database_type?.toUpperCase()} • {connection?.database_host}:{connection?.database_port}
@@ -411,8 +436,33 @@ export default function QueryPage() {
                 />
                 <Text strong>AI 어시스턴트</Text>
               </div>
-              <Card size="small" style={{ backgroundColor: '#f6ffed', border: '1px solid #b7eb8f' }}>
-                <Spin size="small" /> 쿼리를 처리하고 있습니다...
+              <Card size="small" style={{ 
+                backgroundColor: '#f6ffed', 
+                border: '1px solid #b7eb8f',
+                minHeight: '60px',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Spin size="small" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span>쿼리를 처리하고 있습니다</span>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <span style={{ 
+                        animation: 'typing-dots 1.5s infinite',
+                        animationDelay: '0s'
+                      }}>.</span>
+                      <span style={{ 
+                        animation: 'typing-dots 1.5s infinite',
+                        animationDelay: '0.5s'
+                      }}>.</span>
+                      <span style={{ 
+                        animation: 'typing-dots 1.5s infinite',
+                        animationDelay: '1s'
+                      }}>.</span>
+                    </div>
+                  </div>
+                </div>
               </Card>
             </div>
           </div>
@@ -432,17 +482,24 @@ export default function QueryPage() {
             onKeyPress={handleKeyPress}
             placeholder="자연어로 질문해주세요. 예: 사용자 테이블에서 모든 데이터를 보여줘"
             autoSize={{ minRows: 2, maxRows: 4 }}
-            style={{ resize: 'none' }}
+            style={{ 
+              resize: 'none',
+              opacity: isLoading ? 0.6 : 1,
+              transition: 'opacity 0.3s ease'
+            }}
             disabled={isLoading}
           />
           <Button
             type="primary"
-            icon={<SendOutlined />}
+            icon={isLoading ? <Spin size="small" /> : <SendOutlined />}
             onClick={handleSendMessage}
             disabled={!inputValue.trim() || isLoading}
-            style={{ height: 'auto' }}
+            style={{ 
+              height: 'auto',
+              minWidth: '80px'
+            }}
           >
-            전송
+            {isLoading ? '처리중' : '전송'}
           </Button>
         </Space.Compact>
       </div>
