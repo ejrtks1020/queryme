@@ -103,16 +103,21 @@ async def get_table_schema(session: AsyncSession, table_name: str):
 
 
 async def nl2sql_service(request: NL2SQLRequest, user_id: int, trace_info: str):
-    ic(trace_info)
+    # ic(trace_info)
     
-    # Connection 정보 가져오기
-    connection_info = await get_connection_info(connection_id=request.connection_id, user_id=user_id, trace_info=trace_info)
-    
-    # 데이터베이스 스키마 조회
-    schema_info = await get_database_schema(connection_info)
-    ic("데이터베이스 스키마:", schema_info)
+    # 스키마 정보 가져오기
+    if request.connection_id:
+        # 데이터베이스 연결 기반 쿼리
+        connection_info = await get_connection_info(connection_id=request.connection_id, user_id=user_id, trace_info=trace_info)
+        schema_info = await get_database_schema(connection_info)
+        # ic("데이터베이스 스키마:", schema_info)
+    else:
+        # DDL 스키마 기반 쿼리
+        schema_info = request.ddl_schema
+        # ic("DDL 스키마:", schema_info)
 
     prompt = get_nl2sql_prompt(schema_info, request.query)
+    # ic(prompt)
     async def nl2sql_streamer():
         async with aiohttp.ClientSession() as session:
             url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse"

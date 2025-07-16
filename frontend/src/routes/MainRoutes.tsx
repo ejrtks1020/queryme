@@ -4,6 +4,7 @@ import Home from '@/views/Home';
 import Login from '@/views/auth/Login';
 import Register from '@/views/auth/Register';
 import QueryPage from '@/views/connection/query';
+import DDLQuery from '@/views/DDLQuery';
 import AuthGuard from '@/components/AuthGuard';
 
 export const MainRoutes = {
@@ -39,6 +40,14 @@ export const MainRoutes = {
       element: (
         <AuthGuard requireAuth={true}>
           <QueryPage />
+        </AuthGuard>
+      ),
+    },
+    {
+      path: 'ddl-query',
+      element: (
+        <AuthGuard requireAuth={true}>
+          <DDLQuery />
         </AuthGuard>
       ),
     },
