@@ -6,6 +6,7 @@ class NL2SQLRequest(BaseModel):
     connection_id: str | None = None
     use_ddl: bool | None = None
     ddl_schema: str | None = None
+    ddl_session_id: str | None = None
     is_streaming: bool = True
 
     @model_validator(mode='after')

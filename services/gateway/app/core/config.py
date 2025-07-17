@@ -46,6 +46,18 @@ class GatewaySettings(BaseSettings):
     nl2sql_service_port_local: int = 8083
     nl2sql_service_host_prod: str = "nl2sql_service"
     nl2sql_service_port_prod: int = 8083
+
+    # DDL Session Service settings (환경 변수로 오버라이드 가능)
+    ddl_session_service_host_local: str = "localhost"
+    ddl_session_service_port_local: int = 8084
+    ddl_session_service_host_prod: str = "ddl_session_service"
+    ddl_session_service_port_prod: int = 8084
+
+    # History Service settings (환경 변수로 오버라이드 가능)
+    history_service_host_local: str = "localhost"
+    history_service_port_local: int = 8085
+    history_service_host_prod: str = "history_service"
+    history_service_port_prod: int = 8085
     
     # Custom auth service settings (환경 변수로 오버라이드 가능)
     auth_service_host: str = ""
@@ -56,6 +68,12 @@ class GatewaySettings(BaseSettings):
 
     nl2sql_service_host: str = ""
     nl2sql_service_port: int = 0
+
+    ddl_session_service_host: str = ""
+    ddl_session_service_port: int = 0
+
+    history_service_host: str = ""
+    history_service_port: int = 0
 
     cors_origins: list[str] = ["*"]
 
@@ -115,6 +133,30 @@ class GatewaySettings(BaseSettings):
         else:
             raise ValueError(f"Unknown profile: {self.profile}. Supported profiles: local, prod")
     
+    def get_ddl_session_service_url(self) -> str:
+        """환경에 따른 DDL Session Service URL을 반환합니다."""
+        if self.ddl_session_service_host and self.ddl_session_service_port:
+            return f"http://{self.ddl_session_service_host}:{self.ddl_session_service_port}"
+        
+        if self.profile == "local":
+            return f"http://{self.ddl_session_service_host_local}:{self.ddl_session_service_port_local}"
+        elif self.profile == "prod":
+            return f"http://{self.ddl_session_service_host_prod}:{self.ddl_session_service_port_prod}"
+        else:
+            raise ValueError(f"Unknown profile: {self.profile}. Supported profiles: local, prod")
+    
+    def get_history_service_url(self) -> str:
+        """환경에 따른 History Service URL을 반환합니다."""
+        if self.history_service_host and self.history_service_port:
+            return f"http://{self.history_service_host}:{self.history_service_port}"
+        
+        if self.profile == "local":
+            return f"http://{self.history_service_host_local}:{self.history_service_port_local}"
+        elif self.profile == "prod":
+            return f"http://{self.history_service_host_prod}:{self.history_service_port_prod}"
+        else:
+            raise ValueError(f"Unknown profile: {self.profile}. Supported profiles: local, prod")
+    
     def get_service_info(self) -> Dict:
         """서비스 정보를 반환합니다."""
         return {
@@ -131,6 +173,12 @@ class GatewaySettings(BaseSettings):
             },
             "nl2sql_service": {
                 "url": self.get_nl2sql_service_url()
+            },
+            "ddl_session_service": {
+                "url": self.get_ddl_session_service_url()
+            },
+            "history_service": {
+                "url": self.get_history_service_url()
             }
         }
 

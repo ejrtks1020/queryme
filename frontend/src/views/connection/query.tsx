@@ -12,7 +12,9 @@ import {
   Avatar,
   List,
   Tag,
-  FloatButton
+  FloatButton,
+  Drawer,
+  Collapse
 } from 'antd';
 import { 
   SendOutlined, 
@@ -21,11 +23,15 @@ import {
   RobotOutlined,
   ArrowLeftOutlined,
   DownOutlined,
-  EditOutlined
+  EditOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import useApi from '@/hooks/useApi';
 import connectionApi from '@/api/connection';
 import nl2sqlApi from '@/api/nl2sql';
+import historyApi, { type DatabaseQueryHistoryResponse } from '@/api/history';
 import { clearAuthData } from '@/utils/storage';
 import ConnectionUpdateDialog from '@/components/dialog/connection/ConnectionUpdateDialog';
 import ReactMarkdown from 'react-markdown';
@@ -34,6 +40,7 @@ import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
+const { Panel } = Collapse;
 
 interface Message {
   id: string;
@@ -66,10 +73,13 @@ export default function QueryPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnectionLoading, setIsConnectionLoading] = useState(true);
   const [updateDialogVisible, setUpdateDialogVisible] = useState(false);
+  const [historyList, setHistoryList] = useState<DatabaseQueryHistoryResponse[]>([]);
+  const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // API hooks
   const getConnection = useApi(connectionApi.getConnection);
+  const getConnectionHistoryList = useApi(historyApi.getDatabaseQueryHistoryList);
 
   // 스크롤을 맨 아래로 이동하는 함수
   const scrollToBottom = () => {
@@ -122,6 +132,20 @@ export default function QueryPage() {
       navigate('/');
     }
   }, [getConnection.error, navigate]);
+
+  // 연결 히스토리 목록 업데이트
+  useEffect(() => {
+    if (getConnectionHistoryList.data) {
+      setHistoryList(getConnectionHistoryList.data.data);
+    }
+  }, [getConnectionHistoryList.data]);
+
+  // 연결 정보가 변경될 때 히스토리 로드
+  useEffect(() => {
+    if (connection?.id) {
+      getConnectionHistoryList.request(connection.id);
+    }
+  }, [connection?.id]);
 
   // 메시지 전송
   const handleSendMessage = () => {
@@ -181,16 +205,28 @@ export default function QueryPage() {
               }
             ];
           })          
-          setIsLoading(false)
+          setIsLoading(false);
+          
+          // 쿼리 성공 후 히스토리 목록 갱신 (서버에서 저장됨)
+          if (connection?.id) {
+            getConnectionHistoryList.request(connection.id);
+          }
         },
         (err: any) => {
-          setIsLoading(false)
+          setIsLoading(false);
+          const errorMessage = '쿼리 실행 중 오류가 발생했습니다.';
+          
           setMessages(prev => [...prev, {
             id: (Date.now() + 1).toString(),
             type: 'assistant',
-            content: '쿼리 실행 중 오류가 발생했습니다.',
+            content: errorMessage,
             timestamp: new Date()
-          }])
+          }]);
+
+          // 오류 발생 시 히스토리 목록 갱신 (서버에서 저장됨)
+          if (connection?.id) {
+            getConnectionHistoryList.request(connection.id);
+          }
         }        
       );
 
@@ -268,33 +304,11 @@ export default function QueryPage() {
           >
             <ReactMarkdown
               components={{
-                code({ node, inline, className, children, ...props }) {
+                code({ className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
-                  return !inline && match ? (
-                    <SyntaxHighlighter
-                      style={oneLight}
-                      language={match[1]}
-                      PreTag="div"
-                      customStyle={{
-                        margin: '12px 0',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        lineHeight: '1.6',
-                        maxHeight: '400px',
-                        overflow: 'auto',
-                        border: '1px solid #e9ecef',
-                        backgroundColor: '#f8f9fa',
-                      }}
-                      codeTagProps={{
-                        style: {
-                          fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                        }
-                      }}
-                      {...props}
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  ) : (
+                  const isInline = !match;
+                  
+                  return isInline ? (
                     <code 
                       className={className} 
                       style={{
@@ -304,10 +318,26 @@ export default function QueryPage() {
                         fontSize: '13px',
                         fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
                       }}
-                      {...props}
                     >
                       {children}
                     </code>
+                  ) : (
+                    <div style={{
+                      margin: '12px 0',
+                      borderRadius: '8px',
+                      border: '1px solid #e9ecef',
+                      backgroundColor: '#f8f9fa',
+                      maxHeight: '400px',
+                      overflow: 'auto',
+                    }}>
+                      <SyntaxHighlighter
+                        style={oneLight as any}
+                        language={match[1]}
+                        PreTag="div"
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    </div>
                   );
                 },
                 p({ children }) {
@@ -504,12 +534,241 @@ export default function QueryPage() {
         </Space.Compact>
       </div>
 
+      {/* 히스토리 플로팅 버튼 */}
+      <FloatButton
+        icon={<HistoryOutlined />}
+        description="히스토리"
+        onClick={() => setHistoryDrawerVisible(true)}
+        style={{ right: 24, bottom: 24 }}
+      />
+
+      {/* 히스토리 드로어 */}
+      <Drawer
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <HistoryOutlined />
+            쿼리 히스토리 ({historyList.length})
+          </div>
+        }
+        placement="right"
+        onClose={() => setHistoryDrawerVisible(false)}
+        open={historyDrawerVisible}
+        width={400}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {historyList.length === 0 ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '40px 20px',
+              color: '#999'
+            }}>
+              아직 히스토리가 없습니다.
+            </div>
+          ) : (
+            historyList.map((history, index) => (
+              <Card 
+                key={history.id}
+                size="small"
+                style={{ 
+                  backgroundColor: history.success ? '#f6ffed' : '#fff2f0',
+                  borderColor: history.success ? '#b7eb8f' : '#ffccc7'
+                }}
+              >
+                <Collapse 
+                  ghost 
+                  size="small"
+                  expandIcon={({ isActive }) => (
+                    <DownOutlined rotate={isActive ? 180 : 0} />
+                  )}
+                >
+                  <Panel 
+                    header={
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                        {history.success ? (
+                          <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                        ) : (
+                          <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ 
+                            fontSize: '13px', 
+                            fontWeight: 'bold',
+                            marginBottom: '4px'
+                          }}>
+                            {history.question}
+                          </div>
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: '#666',
+                            opacity: 0.8
+                          }}>
+                            {new Date(history.reg_date).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    }
+                    key="1"
+                  >
+                    {history.response ? (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          fontWeight: 'bold', 
+                          color: '#666',
+                          marginBottom: '8px'
+                        }}>
+                          쿼리 결과:
+                        </div>
+                        <div style={{
+                          backgroundColor: '#f8f9fa',
+                          border: '1px solid #e9ecef',
+                          borderRadius: '6px',
+                          padding: '12px',
+                          fontSize: '12px',
+                          maxHeight: '300px',
+                          overflow: 'auto'
+                        }}>
+                          <ReactMarkdown
+                            components={{
+                              code({ className, children, ...props }) {
+                                const match = /language-(\w+)/.exec(className || '');
+                                const isInline = !match;
+                                
+                                return isInline ? (
+                                  <code 
+                                    className={className} 
+                                    style={{
+                                      backgroundColor: '#f1f3f4',
+                                      padding: '2px 4px',
+                                      borderRadius: '3px',
+                                      fontSize: '11px',
+                                      fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                                    }}
+                                    {...props}
+                                  >
+                                    {children}
+                                  </code>
+                                ) : (
+                                  <div style={{
+                                    margin: '8px 0',
+                                    borderRadius: '4px',
+                                    border: '1px solid #e9ecef',
+                                    backgroundColor: '#ffffff',
+                                    maxHeight: '200px',
+                                    overflow: 'auto',
+                                  }}>
+                                    <SyntaxHighlighter
+                                      style={oneLight as any}
+                                      language={match[1]}
+                                      PreTag="div"
+                                      customStyle={{
+                                        margin: 0,
+                                        fontSize: '11px',
+                                        padding: '8px'
+                                      }}
+                                    >
+                                      {String(children).replace(/\n$/, '')}
+                                    </SyntaxHighlighter>
+                                  </div>
+                                );
+                              },
+                              p({ children }) {
+                                return <div style={{ margin: '4px 0', fontSize: '12px' }}>{children}</div>;
+                              },
+                              table({ children }) {
+                                return (
+                                  <div style={{ 
+                                    overflow: 'auto', 
+                                    maxWidth: '100%',
+                                    margin: '8px 0'
+                                  }}>
+                                    <table style={{
+                                      borderCollapse: 'collapse',
+                                      width: '100%',
+                                      fontSize: '11px'
+                                    }}>
+                                      {children}
+                                    </table>
+                                  </div>
+                                );
+                              },
+                              th({ children }) {
+                                return (
+                                  <th style={{
+                                    border: '1px solid #ddd',
+                                    padding: '6px 8px',
+                                    backgroundColor: '#f8f9fa',
+                                    fontWeight: 'bold',
+                                    textAlign: 'left'
+                                  }}>
+                                    {children}
+                                  </th>
+                                );
+                              },
+                              td({ children }) {
+                                return (
+                                  <td style={{
+                                    border: '1px solid #ddd',
+                                    padding: '6px 8px',
+                                    fontSize: '11px'
+                                  }}>
+                                    {children}
+                                  </td>
+                                );
+                              }
+                            }}
+                          >
+                            {history.response}
+                          </ReactMarkdown>
+                        </div>
+                      </div>
+                    ) : history.error_message ? (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          fontWeight: 'bold', 
+                          color: '#ff4d4f',
+                          marginBottom: '8px'
+                        }}>
+                          오류 메시지:
+                        </div>
+                        <div style={{
+                          backgroundColor: '#fff2f0',
+                          border: '1px solid #ffccc7',
+                          borderRadius: '6px',
+                          padding: '12px',
+                          fontSize: '12px',
+                          color: '#ff4d4f',
+                          maxHeight: '200px',
+                          overflow: 'auto'
+                        }}>
+                          {history.error_message}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        marginTop: '12px',
+                        fontSize: '12px',
+                        color: '#999',
+                        fontStyle: 'italic'
+                      }}>
+                        결과가 없습니다.
+                      </div>
+                    )}
+                  </Panel>
+                </Collapse>
+              </Card>
+            ))
+          )}
+        </div>
+      </Drawer>
+
       {/* 연결 수정 다이얼로그 */}
       {connection && (
         <ConnectionUpdateDialog
           visible={updateDialogVisible}
           onClose={handleUpdateDialogClose}
-          connectionData={connection}
+          connectionData={connection as any}
         />
       )}
     </div>

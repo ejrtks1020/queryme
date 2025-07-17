@@ -8,7 +8,7 @@ class ConnectionClient(AsyncHTTPClient):
         super().__init__()
         self.connection_id = connection_id
         self.user_id = user_id
-        self.connection_url = f"http://{settings.CONNECTION_SERVICE_URL}"
+        self.connection_url = f"{settings.CONNECTION_SERVICE_URL}"
         self.trace_info = trace_info
 
     async def get_connection_info(self):

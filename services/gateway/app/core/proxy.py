@@ -54,7 +54,7 @@ class ProxyService:
             
             logger.info(f"Proxying {request.method} {request.url.path} -> {full_target_url}")
 
-            trace_info = self._generate_new_trace_info()
+            trace_info = self._generate_new_trace_info(body)
             headers.update(trace_info)
             
             # 요청 전달
@@ -145,11 +145,17 @@ class ProxyService:
             logger.error(f"Error during SSE streaming: {e}")
             yield f"data: Error during streaming: {str(e)}\n\n"
 
-    def _generate_new_trace_info(self):
+    def _generate_new_trace_info(self, body: bytes):
+        try:
+            body_json = json.loads(body)
+            session_id = body_json.get("ddl_session_id", str(uuid.uuid4()))
+        except:
+            session_id = str(uuid.uuid4())
+            
         trace_info = {
             # 기존 필드
             "x-trace-id": str(uuid.uuid4()),
-            "x-session-id": str(uuid.uuid4()),
+            "x-session-id": session_id,
             
             # 추가 추적 필드
             "x-span-id": str(uuid.uuid4()),           # 개별 작업 단위 식별

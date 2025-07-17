@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Card, 
   Input, 
@@ -13,7 +13,8 @@ import {
   Row,
   Col,
   Tabs,
-  Alert
+  Alert,
+  Collapse
 } from 'antd';
 import { 
   SendOutlined, 
@@ -23,16 +24,28 @@ import {
   ArrowLeftOutlined,
   FileTextOutlined,
   DatabaseOutlined,
-  ClearOutlined
+  ClearOutlined,
+  HistoryOutlined,
+  CheckCircleOutlined,
+  ExclamationCircleOutlined,
+  DownOutlined
 } from '@ant-design/icons';
 import nl2sqlApi from '@/api/nl2sql';
+import ddlSessionApi from '@/api/ddlSession';
+import historyApi, { type DDLQueryHistoryResponse } from '@/api/history';
+import useApi from '@/hooks/useApi';
+import { generateSessionId } from '@/utils/uuid';
+import { useDispatch } from 'react-redux';
+import { SET_DDL_SESSIONS } from '@/store/actions';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { DDL_WELCOME_MESSAGE } from '@/utils/messages';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
+const { Panel } = Collapse;
 
 interface Message {
   id: string;
@@ -93,12 +106,26 @@ CREATE TABLE order_items (
 
 export default function DDLQuery() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
+  const [sessionId, setSessionId] = useState(() => {
+    // URL에서 session_id가 있으면 사용, 없으면 새로 생성
+    const sessionId = searchParams.get('session_id');
+    console.log('sessionId', sessionId);
+    return sessionId || generateSessionId();
+  });
   const [ddlSchema, setDdlSchema] = useState(DEFAULT_DDL_EXAMPLE);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('1');
+  const [sessionTitle, setSessionTitle] = useState('새로운 DDL 세션');
+  const [historyList, setHistoryList] = useState<DDLQueryHistoryResponse[]>([]);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  
+  // API hooks
+  const getDdlSessionList = useApi(ddlSessionApi.getSessionList);
+  const getDdlHistoryList = useApi(historyApi.getDDLQueryHistoryList);
 
   // 스크롤을 맨 아래로 이동하는 함수
   const scrollToBottom = () => {
@@ -112,24 +139,69 @@ export default function DDLQuery() {
     scrollToBottom();
   }, [messages]);
 
-  // 초기 환영 메시지 설정
+  // DDL 세션 목록 업데이트
   useEffect(() => {
-    setMessages([{
-      id: 'welcome',
-      type: 'assistant',
-      content: `안녕하세요! DDL 기반 쿼리 도구입니다. 
+    if (getDdlSessionList.data) {
+      dispatch({
+        type: SET_DDL_SESSIONS,
+        ddlSessions: getDdlSessionList.data.data
+      });
+    }
+  }, [getDdlSessionList.data]);
 
-왼쪽에 스키마 정의(DDL)를 입력하신 후, 자연어로 질문해주세요. 
+  // DDL 히스토리 목록 업데이트
+  useEffect(() => {
+    if (getDdlHistoryList.data) {
+      const historyData = getDdlHistoryList.data.data;
+      setHistoryList(historyData);
+      
+      if (historyData.length > 0) {
+        const lastHistory = historyData[historyData.length - 1];
+        if (lastHistory.ddl) {
+          setDdlSchema(lastHistory.ddl);
+        }
+      }
+    }
+  }, [getDdlHistoryList.data]);
 
-예시 질문:
-- "모든 사용자 정보를 보여줘"
-- "가장 비싼 상품 5개를 찾아줘"
-- "주문 상태별로 주문 수를 집계해줘"
-- "사용자별 총 주문 금액을 계산해줘"
+  // URL의 session_id 파라미터가 변경될 때 sessionId 업데이트
+  useEffect(() => {
+    const urlSessionId = searchParams.get('session_id');
+    if (urlSessionId && urlSessionId !== sessionId) {
+      console.log('URL sessionId changed:', urlSessionId);
+      setSessionId(urlSessionId);
+    }
+  }, [searchParams, sessionId]);
 
-궁금한 점이 있으시면 언제든 질문해주세요!`,
-      timestamp: new Date()
-    }]);
+  // 세션 ID가 변경될 때 히스토리 로드 및 메시지 초기화
+  useEffect(() => {
+    console.log('sessionId', sessionId);
+    if (sessionId) {
+      getDdlHistoryList.request(sessionId);
+      
+      // 새로운 세션으로 변경된 경우 메시지 초기화 및 DDL 스키마 초기화
+      setMessages([{
+        id: 'welcome',
+        type: 'assistant',
+        content: DDL_WELCOME_MESSAGE,
+        timestamp: new Date()
+      }]);
+      
+      // DDL 스키마를 기본값으로 초기화 (히스토리에서 다시 설정될 수 있음)
+      // setDdlSchema(DEFAULT_DDL_EXAMPLE);
+    }
+  }, [sessionId]);
+
+  // 초기 환영 메시지 설정 (컴포넌트 마운트 시에만)
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{
+        id: 'welcome',
+        type: 'assistant',
+        content: DDL_WELCOME_MESSAGE,
+        timestamp: new Date()
+      }]);
+    }
   }, []);
 
   // 메시지 전송
@@ -159,7 +231,8 @@ export default function DDLQuery() {
         {
           query: inputValue,
           ddl_schema: ddlSchema,
-          use_ddl: true
+          use_ddl: true,
+          ddl_session_id: sessionId
         },
         (chunk: any) => {
           if (!chatStart) {
@@ -197,15 +270,26 @@ export default function DDLQuery() {
             ];
           });          
           setIsLoading(false);
+          
+          // 쿼리 성공 후 히스토리 목록 갱신 (서버에서 저장됨)
+          getDdlHistoryList.request(sessionId);
+          
+          // 쿼리 성공 후 DDL 세션 목록 갱신
+          getDdlSessionList.request();
         },
         (err: any) => {
           setIsLoading(false);
+          const errorMessage = 'DDL 쿼리 실행 중 오류가 발생했습니다. DDL 스키마를 확인해주세요.';
+          
           setMessages(prev => [...prev, {
             id: (Date.now() + 1).toString(),
             type: 'assistant',
-            content: 'DDL 쿼리 실행 중 오류가 발생했습니다. DDL 스키마를 확인해주세요.',
+            content: errorMessage,
             timestamp: new Date()
           }]);
+
+          // 오류 발생 시 히스토리 목록 갱신 (서버에서 저장됨)
+          getDdlHistoryList.request(sessionId);
         }        
       );
 
@@ -240,22 +324,24 @@ export default function DDLQuery() {
     setDdlSchema(DEFAULT_DDL_EXAMPLE);
   };
 
-  // 메시지 초기화
+  // 메시지 초기화 (새 세션 시작)
   const handleClearMessages = () => {
+    // 새로운 세션 ID 생성
+    const newSessionId = generateSessionId();
+    setSessionId(newSessionId);
+    setSessionTitle('새로운 DDL 세션');
+    setDdlSchema(DEFAULT_DDL_EXAMPLE);
+    setHistoryList([]);
+    
+    // URL 업데이트 (브라우저 히스토리에 추가하지 않음)
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('session_id', newSessionId);
+    window.history.replaceState({}, '', newUrl);
+    
     setMessages([{
       id: 'welcome',
       type: 'assistant',
-      content: `안녕하세요! DDL 기반 쿼리 도구입니다. 
-
-왼쪽에 스키마 정의(DDL)를 입력하신 후, 자연어로 질문해주세요. 
-
-예시 질문:
-- "모든 사용자 정보를 보여줘"
-- "가장 비싼 상품 5개를 찾아줘"
-- "주문 상태별로 주문 수를 집계해줘"
-- "사용자별 총 주문 금액을 계산해줘"
-
-궁금한 점이 있으시면 언제든 질문해주세요!`,
+      content: DDL_WELCOME_MESSAGE,
       timestamp: new Date()
     }]);
   };
@@ -326,10 +412,9 @@ export default function DDLQuery() {
                       overflow: 'auto',
                     }}>
                       <SyntaxHighlighter
-                        style={oneLight}
+                        style={oneLight as any}
                         language={match[1]}
                         PreTag="div"
-                        {...props}
                       >
                         {String(children).replace(/\n$/, '')}
                       </SyntaxHighlighter>
@@ -402,6 +487,10 @@ export default function DDLQuery() {
               <Text type="secondary">
                 스키마 정의를 통해 자연어로 SQL 쿼리를 생성합니다
               </Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                세션 ID: {sessionId}
+              </Text>
             </div>
           </Space>
         </div>
@@ -458,25 +547,248 @@ export default function DDLQuery() {
           </div>
           
           <div style={{ flex: 1, padding: '16px' }}>
-            <Alert
-              message="DDL 스키마를 입력하세요"
-              description="CREATE TABLE 문을 사용하여 테이블 구조를 정의해주세요. 예시를 참고하여 작성하시면 됩니다."
-              type="info"
-              showIcon
-              style={{ marginBottom: '16px' }}
-            />
-            
-            <TextArea
-              value={ddlSchema}
-              onChange={(e) => setDdlSchema(e.target.value)}
-              placeholder="CREATE TABLE 문을 입력하세요..."
-              style={{ 
-                height: 'calc(100% - 100px)',
-                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                fontSize: '13px',
-                resize: 'none'
-              }}
-            />
+            <Tabs defaultActiveKey="1" style={{ height: '100%' }}>
+              <TabPane tab="DDL 스키마" key="1">
+                <Alert
+                  message="DDL 스키마를 입력하세요"
+                  description="CREATE TABLE 문을 사용하여 테이블 구조를 정의해주세요. 예시를 참고하여 작성하시면 됩니다."
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: '16px' }}
+                />
+                
+                <TextArea
+                  value={ddlSchema}
+                  onChange={(e) => setDdlSchema(e.target.value)}
+                  placeholder="CREATE TABLE 문을 입력하세요..."
+                  style={{ 
+                    height: 'calc(100vh - 320px)',
+                    fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                    fontSize: '13px',
+                    resize: 'none'
+                  }}
+                />
+              </TabPane>
+              
+              <TabPane 
+                tab={
+                  <span>
+                    <HistoryOutlined />
+                    히스토리 ({historyList.length})
+                  </span>
+                } 
+                key="2"
+              >
+                <div style={{ height: 'calc(100vh - 280px)', overflowY: 'auto' }}>
+                  {historyList.length === 0 ? (
+                    <div style={{ 
+                      textAlign: 'center', 
+                      padding: '40px 20px',
+                      color: '#999'
+                    }}>
+                      아직 히스토리가 없습니다.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {historyList.map((history, index) => (
+                        <Card 
+                          key={history.id}
+                          size="small"
+                          style={{ 
+                            backgroundColor: history.success ? '#f6ffed' : '#fff2f0',
+                            borderColor: history.success ? '#b7eb8f' : '#ffccc7'
+                          }}
+                        >
+                          <Collapse 
+                            ghost 
+                            size="small"
+                            expandIcon={({ isActive }) => (
+                              <DownOutlined rotate={isActive ? 180 : 0} />
+                            )}
+                          >
+                            <Panel 
+                              header={
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                                  {history.success ? (
+                                    <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                                  ) : (
+                                    <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+                                  )}
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ 
+                                      fontSize: '13px', 
+                                      fontWeight: 'bold',
+                                      marginBottom: '4px'
+                                    }}>
+                                      {history.question}
+                                    </div>
+                                    <div style={{ 
+                                      fontSize: '12px', 
+                                      color: '#666',
+                                      opacity: 0.8
+                                    }}>
+                                      {new Date(history.reg_date).toLocaleString()}
+                                    </div>
+                                  </div>
+                                </div>
+                              }
+                              key="1"
+                            >
+                              {history.response ? (
+                                <div style={{ marginTop: '12px' }}>
+                                  <div style={{ 
+                                    fontSize: '12px', 
+                                    fontWeight: 'bold', 
+                                    color: '#666',
+                                    marginBottom: '8px'
+                                  }}>
+                                    쿼리 결과:
+                                  </div>
+                                  <div style={{
+                                    backgroundColor: '#f8f9fa',
+                                    border: '1px solid #e9ecef',
+                                    borderRadius: '6px',
+                                    padding: '12px',
+                                    fontSize: '12px',
+                                    maxHeight: '300px',
+                                    overflow: 'auto'
+                                  }}>
+                                    <ReactMarkdown
+                                      components={{
+                                        code({ className, children, ...props }) {
+                                          const match = /language-(\w+)/.exec(className || '');
+                                          const isInline = !match;
+                                          
+                                          return isInline ? (
+                                            <code 
+                                              className={className} 
+                                              style={{
+                                                backgroundColor: '#f1f3f4',
+                                                padding: '2px 4px',
+                                                borderRadius: '3px',
+                                                fontSize: '11px',
+                                                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
+                                              }}
+                                              {...props}
+                                            >
+                                              {children}
+                                            </code>
+                                          ) : (
+                                            <div style={{
+                                              margin: '8px 0',
+                                              borderRadius: '4px',
+                                              border: '1px solid #e9ecef',
+                                              backgroundColor: '#ffffff',
+                                              maxHeight: '200px',
+                                              overflow: 'auto',
+                                            }}>
+                                              <SyntaxHighlighter
+                                                style={oneLight as any}
+                                                language={match[1]}
+                                                PreTag="div"
+                                                customStyle={{
+                                                  margin: 0,
+                                                  fontSize: '11px',
+                                                  padding: '8px'
+                                                }}
+                                              >
+                                                {String(children).replace(/\n$/, '')}
+                                              </SyntaxHighlighter>
+                                            </div>
+                                          );
+                                        },
+                                        p({ children }) {
+                                          return <div style={{ margin: '4px 0', fontSize: '12px' }}>{children}</div>;
+                                        },
+                                        table({ children }) {
+                                          return (
+                                            <div style={{ 
+                                              overflow: 'auto', 
+                                              maxWidth: '100%',
+                                              margin: '8px 0'
+                                            }}>
+                                              <table style={{
+                                                borderCollapse: 'collapse',
+                                                width: '100%',
+                                                fontSize: '11px'
+                                              }}>
+                                                {children}
+                                              </table>
+                                            </div>
+                                          );
+                                        },
+                                        th({ children }) {
+                                          return (
+                                            <th style={{
+                                              border: '1px solid #ddd',
+                                              padding: '6px 8px',
+                                              backgroundColor: '#f8f9fa',
+                                              fontWeight: 'bold',
+                                              textAlign: 'left'
+                                            }}>
+                                              {children}
+                                            </th>
+                                          );
+                                        },
+                                        td({ children }) {
+                                          return (
+                                            <td style={{
+                                              border: '1px solid #ddd',
+                                              padding: '6px 8px',
+                                              fontSize: '11px'
+                                            }}>
+                                              {children}
+                                            </td>
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      {history.response}
+                                    </ReactMarkdown>
+                                  </div>
+                                </div>
+                              ) : history.error_message ? (
+                                <div style={{ marginTop: '12px' }}>
+                                  <div style={{ 
+                                    fontSize: '12px', 
+                                    fontWeight: 'bold', 
+                                    color: '#ff4d4f',
+                                    marginBottom: '8px'
+                                  }}>
+                                    오류 메시지:
+                                  </div>
+                                  <div style={{
+                                    backgroundColor: '#fff2f0',
+                                    border: '1px solid #ffccc7',
+                                    borderRadius: '6px',
+                                    padding: '12px',
+                                    fontSize: '12px',
+                                    color: '#ff4d4f',
+                                    maxHeight: '200px',
+                                    overflow: 'auto'
+                                  }}>
+                                    {history.error_message}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ 
+                                  marginTop: '12px',
+                                  fontSize: '12px',
+                                  color: '#999',
+                                  fontStyle: 'italic'
+                                }}>
+                                  결과가 없습니다.
+                                </div>
+                              )}
+                            </Panel>
+                          </Collapse>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabPane>
+            </Tabs>
           </div>
         </div>
 

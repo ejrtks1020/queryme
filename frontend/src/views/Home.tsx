@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux'
 import { Card, Row, Col, Button, Space, Typography, Statistic } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   DatabaseOutlined, 
   PlusOutlined, 
@@ -11,8 +11,10 @@ import {
   CheckCircleOutlined
 } from '@ant-design/icons';
 import ConnectionDialog from '@/components/dialog/connection/ConnectionCreateDialog';
+import { generateSessionId } from '@/utils/uuid';
 
 export default function Home() {
+  const navigate = useNavigate();
   const [connectionDialogVisible, setConnectionDialogVisible] = useState(false);
 
   const handleOpenConnectionDialog = () => {
@@ -21,6 +23,12 @@ export default function Home() {
 
   const handleCloseConnectionDialog = () => {
     setConnectionDialogVisible(false);
+  };
+
+  // 새 DDL 세션 시작
+  const handleStartDDLQuery = () => {
+    const newSessionId = generateSessionId();
+    navigate(`/ddl-query?session_id=${newSessionId}`);
   };
 
   return (
@@ -129,15 +137,15 @@ export default function Home() {
               </div>
             }
             actions={[
-              <Link to="/ddl-query" key="ddl-query">
-                <Button 
-                  type="default" 
-                  size="large"
-                  style={{ width: '80%' }}
-                >
-                  시작하기
-                </Button>
-              </Link>
+              <Button 
+                key="ddl-query"
+                type="default" 
+                size="large"
+                style={{ width: '80%' }}
+                onClick={handleStartDDLQuery}
+              >
+                시작하기
+              </Button>
             ]}
           >
             <Card.Meta

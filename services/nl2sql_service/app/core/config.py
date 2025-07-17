@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     GOOGLE_GEMINI_API_KEY: str
     CONNECTION_SERVICE_URL: str
+    DDL_SESSION_SERVICE_URL: str
+    HISTORY_SERVICE_URL: str
 
 
 settings = Settings()

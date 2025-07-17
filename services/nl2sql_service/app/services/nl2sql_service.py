@@ -1,3 +1,4 @@
+from datetime import datetime
 from common.core.logger import Logger
 from schemas.request import NL2SQLRequest
 import aiohttp
@@ -5,11 +6,13 @@ import json
 from fastapi.responses import StreamingResponse
 from core.config import settings
 from utils.http_client.connection_api import ConnectionClient
+from utils.http_client.ddl_session_api import DDLSessionClient
+from utils.http_client.history_api import HistoryClient
 from icecream import ic
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
-from utils.nl2sql_utils import get_nl2sql_prompt
+from utils.nl2sql_utils import get_nl2sql_prompt, RequestType
 logger = Logger.getLogger(__name__)
 
 
@@ -103,19 +106,56 @@ async def get_table_schema(session: AsyncSession, table_name: str):
 
 
 async def nl2sql_service(request: NL2SQLRequest, user_id: int, trace_info: str):
-    # ic(trace_info)
+
+    history_response = None
+
+    if request.connection_id:
+        request_type = RequestType.DATABASE
+    elif request.ddl_session_id is not None:
+        request_type = RequestType.DDL
+    else:
+        raise ValueError("connection_id 또는 ddl_session_id가 필요합니다.")
     
     # 스키마 정보 가져오기
-    if request.connection_id:
+    if request_type == RequestType.DATABASE:
         # 데이터베이스 연결 기반 쿼리
         connection_info = await get_connection_info(connection_id=request.connection_id, user_id=user_id, trace_info=trace_info)
         schema_info = await get_database_schema(connection_info)
+
+        async with HistoryClient(user_id, trace_info) as history_client:
+            history_response = await history_client.create_database_query_history(
+                connection_id=request.connection_id, 
+                question=request.query
+            )
         # ic("데이터베이스 스키마:", schema_info)
     else:
-        # DDL 스키마 기반 쿼리
+        # DDL 스키마 기반 쿼리ㄴ
         schema_info = request.ddl_schema
         # ic("DDL 스키마:", schema_info)
+        
+        # DDL 기반 쿼리일 때 세션 처리
+        async with DDLSessionClient(user_id, trace_info) as ddl_client:
+            # 세션이 존재하는지 확인
+            ddl_session = await ddl_client.get_session(request.ddl_session_id)
+            ic(ddl_session)
+            if not ddl_session['data']:
+                # 세션이 없으면 새로 생성
+                ddl_session = await ddl_client.create_session("새로운 DDL 세션", request.ddl_session_id)
+                if ddl_session:
+                    ic(f"새 DDL 세션 생성: {ddl_session['data']['id']}")
+                else:
+                    logger.warning(f"DDL 세션 생성 실패: session_id={request.ddl_session_id}")
+            else:
+                ic(f"기존 DDL 세션 사용: {ddl_session['data']['id']}")
 
+        async with HistoryClient(user_id, trace_info) as history_client:
+            history_response = await history_client.create_ddl_query_history(
+                session_id=ddl_session['data']['id'], 
+                ddl=request.ddl_schema, 
+                question=request.query
+            )
+
+    history_id = history_response['data']['id'] if history_response else None
     prompt = get_nl2sql_prompt(schema_info, request.query)
     # ic(prompt)
     async def nl2sql_streamer():
@@ -136,17 +176,48 @@ async def nl2sql_service(request: NL2SQLRequest, user_id: int, trace_info: str):
                     }
                 ]
             }
-            
+            total_text = ""
+            start_time = datetime.now()
+            duration = 0
             async with session.post(url, headers=headers, json=data) as response:
                 async for line in response.content:
                     decoded_line = line.decode('utf-8')
                     if decoded_line.startswith('data: '):
                         try:
                             data = json.loads(decoded_line[6:])
-                            text = data['candidates'][0]['content']['parts'][0]['text'].replace('\n', '<NL>')
+                            raw_text = data['candidates'][0]['content']['parts'][0]['text']
+                            text = raw_text.replace('\n', '<NL>')
+                            total_text += text
                             print(f"text: {text}")
                             yield f"data: {text}\n\n"
                         except:
                             pass
+                duration = int((datetime.now() - start_time).total_seconds() * 1000)  # 밀리초 단위로 변환
+            
+            total_text = total_text.replace('<NL>', '\n')
+                
+            if request_type == RequestType.DDL:
+                async with DDLSessionClient(user_id, trace_info) as ddl_client:
+                    await ddl_client.update_session_title(request.ddl_session_id, request.query)
+            
+            if history_id:
+                if request_type == RequestType.DATABASE:
+                    async with HistoryClient(user_id, trace_info) as history_client:
+                        await history_client.update_database_query_history(
+                            history_id=history_id,
+                            response=total_text,
+                            success=True,
+                            end_date=datetime.now().isoformat(),
+                            duration=duration
+                        )
+                else:
+                    async with HistoryClient(user_id, trace_info) as history_client:
+                        await history_client.update_ddl_query_history(
+                            history_id=history_id,
+                            response=total_text,
+                            success=True,
+                            end_date=datetime.now().isoformat(),
+                            duration=duration
+                        )
 
     return StreamingResponse(content=nl2sql_streamer(), media_type="text/event-stream")

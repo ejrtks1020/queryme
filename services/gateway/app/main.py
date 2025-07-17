@@ -19,6 +19,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.auth_router import router as auth_router
 from api.connection_router import router as connection_router
 from api.nl2sql_router import router as nl2sql_router
+from api.ddl_session_router import router as ddl_session_router
+from api.history_router import router as history_router
 from common.core.logger import Logger
 
 logger = Logger.getLogger(__name__)
@@ -31,6 +33,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"Auth service URL: {settings.get_auth_service_url()}")
     logger.info(f"Connection service URL: {settings.get_connection_service_url()}")
     logger.info(f"NL2SQL service URL: {settings.get_nl2sql_service_url()}")
+    logger.info(f"DDL Session service URL: {settings.get_ddl_session_service_url()}")
+    logger.info(f"History service URL: {settings.get_history_service_url()}")
     
     yield
     
@@ -84,6 +88,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(connection_router)
 app.include_router(nl2sql_router)
+app.include_router(ddl_session_router)
+app.include_router(history_router)
 
 @app.exception_handler(Exception)
 async def exception_handler(request, exc: Exception):

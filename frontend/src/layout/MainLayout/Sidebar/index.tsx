@@ -8,15 +8,17 @@ import {
   DatabaseOutlined,
   PlusOutlined,
   CodeOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import useApi from '@/hooks/useApi';
 import authApi from '@/api/auth';
 import { clearAuthData, getUserInfo } from '@/utils/storage';
 import connectionApi from '@/api/connection';
+import ddlSessionApi from '@/api/ddlSession';
 import ConnectionDialog from '@/components/dialog/connection/ConnectionCreateDialog';
 import { useDispatch } from 'react-redux';
-import { SET_CONNECTIONS } from '@/store/actions';
+import { SET_CONNECTIONS, SET_DDL_SESSIONS } from '@/store/actions';
 import { useSelector } from 'react-redux';
 
 const { Sider } = Layout;
@@ -31,6 +33,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
 
   const dispatch = useDispatch();
   const connections = useSelector((state: any) => state.connection.connections);
+  const ddlSessions = useSelector((state: any) => state.ddlSession.ddlSessions);
   const userInfo = getUserInfo();
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,6 +42,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const [errorMessage, setErrorMessage] = useState('');
   const [connectionDialogVisible, setConnectionDialogVisible] = useState(false);
   const getConnectionList = useApi(connectionApi.getConnectionList);
+  const getDdlSessionList = useApi(ddlSessionApi.getSessionList);
 
   // 로그아웃 처리
   const handleLogout = () => {
@@ -56,6 +60,7 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
 
   useEffect(() => {
     getConnectionList.request();
+    getDdlSessionList.request();
   }, []);
 
   useEffect(() => {
@@ -66,6 +71,15 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
       });
     }
   }, [getConnectionList.data]);
+
+  useEffect(() => {
+    if (getDdlSessionList.data) {
+      dispatch({
+        type: SET_DDL_SESSIONS,
+        ddlSessions: getDdlSessionList.data.data
+      });
+    }
+  }, [getDdlSessionList.data]);
 
   useEffect(() => {
     if (getConnectionList.error) {
@@ -102,6 +116,26 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
   const getSelectedKey = () => {
     if (location.pathname === '/') return ['home'];
     if (location.pathname === '/about') return ['about'];
+    if (location.pathname === '/ddl-query') return ['ddl-query'];
+    return [];
+  };
+
+  // 현재 경로에 따른 선택된 연결 키
+  const getSelectedConnectionKey = () => {
+    const pathMatch = location.pathname.match(/^\/query\/(.+)$/);
+    if (pathMatch) {
+      return [`conn-${pathMatch[1]}`];
+    }
+    return [];
+  };
+
+  // 현재 경로에 따른 선택된 DDL 세션 키
+  const getSelectedDdlSessionKey = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const sessionId = searchParams.get('session_id');
+    if (sessionId) {
+      return [`ddl-${sessionId}`];
+    }
     return [];
   };
 
@@ -128,6 +162,14 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
     if (key.startsWith('conn-')) {
       const connectionId = key.replace('conn-', '');
       navigate(`/query/${connectionId}`);
+    }
+  };
+
+  // DDL 세션 메뉴 클릭 핸들러
+  const handleDdlSessionClick = ({ key }: { key: string }) => {
+    if (key.startsWith('ddl-')) {
+      const sessionId = key.replace('ddl-', '');
+      navigate(`/ddl-query?session_id=${sessionId}`);
     }
   };
 
@@ -227,14 +269,35 @@ function Sidebar({ collapsed, onCollapse }: SidebarProps) {
         />
       </div>
 
+      {/* DDL 세션 섹션 */}
+      <div style={{ padding: '0 16px' }}>
+        {!collapsed && <h4 style={{ margin: '16px 0 8px 0' }}>DDL 쿼리 세션</h4>}
+        <Menu
+          mode="inline"
+          selectedKeys={getSelectedDdlSessionKey()}
+          style={{ 
+            border: 'none',
+            maxHeight: 'calc(45vh - 160px)', // 반응형 높이 계산
+            overflow: 'auto'
+          }}
+          items={ddlSessions.map((session: any) => ({
+            key: `ddl-${session.id}`,
+            icon: <FileTextOutlined />,
+            label: collapsed ? '' : session.session_title,
+          }))}
+          onClick={handleDdlSessionClick}
+        />
+      </div>
+
       {/* 데이터베이스 연결 섹션 */}
       <div style={{ padding: '0 16px' }}>
         {!collapsed && <h4 style={{ margin: '16px 0 8px 0' }}>데이터베이스 연결</h4>}
         <Menu
           mode="inline"
+          selectedKeys={getSelectedConnectionKey()}
           style={{ 
             border: 'none',
-            maxHeight: 'calc(90vh - 320px)', // 반응형 높이 계산
+            maxHeight: 'calc(45vh - 160px)', // 반응형 높이 계산
             overflow: 'auto'
           }}
           items={connections.map((conn: any) => ({

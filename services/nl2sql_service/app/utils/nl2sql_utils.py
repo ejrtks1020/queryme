@@ -1,4 +1,9 @@
 from typing import Union, Dict, Any
+from enum import Enum
+
+class RequestType(Enum):
+    DATABASE = "database"
+    DDL = "ddl"
 
 def format_schema_info(schema_info: Union[str, Dict[str, Any]]) -> str:
     """

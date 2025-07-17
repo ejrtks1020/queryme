@@ -31,6 +31,9 @@ export const SET_USER_TOKEN = 'SET_USER_TOKEN'
 // action - connection reducer
 export const SET_CONNECTIONS = 'SET_CONNECTIONS'
 
+// action - ddl session reducer
+export const SET_DDL_SESSIONS = 'SET_DDL_SESSIONS'
+
 export const enqueueSnackbar = (notification: any) => {
     const key = notification.options && notification.options.key
 

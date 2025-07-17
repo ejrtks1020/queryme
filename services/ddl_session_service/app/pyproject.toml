@@ -1,0 +1,18 @@
+[project]
+name = "query-executor-service"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "===3.12.5"
+dependencies = [
+    "alembic>=1.16.4",
+    "asyncmy>=0.2.10",
+    "fastapi>=0.116.1",
+    "greenlet>=3.2.3",
+    "gunicorn>=23.0.0",
+    "pydantic>=2.11.7",
+    "pydantic-settings>=2.10.1",
+    "pymysql>=1.1.1",
+    "sqlalchemy>=2.0.41",
+    "uvicorn>=0.35.0",
+]
