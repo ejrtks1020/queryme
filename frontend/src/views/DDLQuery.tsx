@@ -40,7 +40,7 @@ import { SET_DDL_SESSIONS } from '@/store/actions';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { DDL_WELCOME_MESSAGE } from '@/utils/messages';
+import { DDL_WELCOME_MESSAGE, DEFAULT_DDL_EXAMPLE } from '@/utils/messages';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -54,56 +54,6 @@ interface Message {
   timestamp: Date;
 }
 
-const DEFAULT_DDL_EXAMPLE = `-- 사용자 테이블
-CREATE TABLE users (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- 상품 테이블
-CREATE TABLE products (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    category_id INT,
-    stock_quantity INT DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
-);
-
--- 카테고리 테이블
-CREATE TABLE categories (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(50) NOT NULL,
-    description TEXT
-);
-
--- 주문 테이블
-CREATE TABLE orders (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    total_amount DECIMAL(10, 2) NOT NULL,
-    status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
--- 주문 상세 테이블
-CREATE TABLE order_items (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    order_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity INT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
-);`;
-
 export default function DDLQuery() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -111,7 +61,6 @@ export default function DDLQuery() {
   const [sessionId, setSessionId] = useState(() => {
     // URL에서 session_id가 있으면 사용, 없으면 새로 생성
     const sessionId = searchParams.get('session_id');
-    console.log('sessionId', sessionId);
     return sessionId || generateSessionId();
   });
   const [ddlSchema, setDdlSchema] = useState(DEFAULT_DDL_EXAMPLE);
@@ -122,6 +71,8 @@ export default function DDLQuery() {
   const [sessionTitle, setSessionTitle] = useState('새로운 DDL 세션');
   const [historyList, setHistoryList] = useState<DDLQueryHistoryResponse[]>([]);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [isSessionTransitioning, setIsSessionTransitioning] = useState(false);
+  const [sessionTransitionMessage, setSessionTransitionMessage] = useState('');
   
   // API hooks
   const getDdlSessionList = useApi(ddlSessionApi.getSessionList);
@@ -168,14 +119,12 @@ export default function DDLQuery() {
   useEffect(() => {
     const urlSessionId = searchParams.get('session_id');
     if (urlSessionId && urlSessionId !== sessionId) {
-      console.log('URL sessionId changed:', urlSessionId);
       setSessionId(urlSessionId);
     }
-  }, [searchParams, sessionId]);
+  }, [searchParams]);
 
   // 세션 ID가 변경될 때 히스토리 로드 및 메시지 초기화
   useEffect(() => {
-    console.log('sessionId', sessionId);
     if (sessionId) {
       getDdlHistoryList.request(sessionId);
       
@@ -326,24 +275,38 @@ export default function DDLQuery() {
 
   // 메시지 초기화 (새 세션 시작)
   const handleClearMessages = () => {
-    // 새로운 세션 ID 생성
-    const newSessionId = generateSessionId();
-    setSessionId(newSessionId);
-    setSessionTitle('새로운 DDL 세션');
-    setDdlSchema(DEFAULT_DDL_EXAMPLE);
-    setHistoryList([]);
+    // 세션 전환 시작
+    setIsSessionTransitioning(true);
+    setSessionTransitionMessage('새로운 세션을 생성하고 있습니다...');
     
-    // URL 업데이트 (브라우저 히스토리에 추가하지 않음)
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.set('session_id', newSessionId);
-    window.history.replaceState({}, '', newUrl);
-    
-    setMessages([{
-      id: 'welcome',
-      type: 'assistant',
-      content: DDL_WELCOME_MESSAGE,
-      timestamp: new Date()
-    }]);
+    // 애니메이션을 위한 지연
+    setTimeout(() => {
+      // 새로운 세션 ID 생성
+      const newSessionId = generateSessionId();
+      setSessionId(newSessionId);
+      setSessionTitle('새로운 DDL 세션');
+      setDdlSchema(DEFAULT_DDL_EXAMPLE);
+      setHistoryList([]);
+      
+      // URL 업데이트 (브라우저 히스토리에 추가하지 않음)
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('session_id', newSessionId);
+      window.history.replaceState({}, '', newUrl);
+      
+      setMessages([{
+        id: 'welcome',
+        type: 'assistant',
+        content: DDL_WELCOME_MESSAGE,
+        timestamp: new Date()
+      }]);
+      
+      // 세션 전환 완료
+      setTimeout(() => {
+        setIsSessionTransitioning(false);
+        setSessionTransitionMessage('');
+        message.success('새로운 세션이 생성되었습니다!');
+      }, 500);
+    }, 300);
   };
 
   // 메시지 렌더링
@@ -436,6 +399,37 @@ export default function DDLQuery() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* 세션 전환 오버레이 */}
+      {isSessionTransitioning && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            padding: '32px',
+            borderRadius: '12px',
+            backgroundColor: 'white',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #f0f0f0'
+          }}>
+            <Spin size="large" style={{ marginBottom: '16px' }} />
+            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
+              {sessionTransitionMessage}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div style={{ 
         padding: '16px 24px', 
@@ -500,8 +494,10 @@ export default function DDLQuery() {
             icon={<ClearOutlined />}
             onClick={handleClearMessages}
             type="default"
+            loading={isSessionTransitioning}
+            disabled={isSessionTransitioning}
           >
-            대화 초기화
+            새로운 세션
           </Button>
         </div>
       </div>
