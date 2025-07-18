@@ -1,5 +1,7 @@
 FROM python:3.12.5-slim AS builder
 
+ARG SERVICE_PATH
+
 RUN pip install uv
 
 ENV UV_VIRTUALENVS_CREATE=1 \
@@ -15,12 +17,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY app/pyproject.toml app/uv.lock /app/
+COPY services/$SERVICE_PATH/app/pyproject.toml services/$SERVICE_PATH/app/uv.lock /app/
 
 RUN uv venv --seed && \
     uv pip install .
 
 FROM python:3.12.5-slim AS runtime
+
+ARG SERVICE_PATH
 
 ENV DEBIAN_FRONTEND=noninteractive \
     VIRTUAL_ENV=/app/.venv \
@@ -34,13 +38,12 @@ RUN apt-get update --fix-missing && apt-get install -y \
     supervisor \
     vim \
     binutils \
-    pandoc \
     sudo
 
 ARG UID=1000
 ARG GID=1000
-ARG UNAME=genos
-ARG GNAME=genos
+ARG UNAME=queryme
+ARG GNAME=queryme
 
 # Add Group with designated GID
 RUN getent group $GID || groupadd -g $GID $GNAME
@@ -59,9 +62,15 @@ USER $UID:$GID
 
 WORKDIR /app
 
-COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+# 가상환경 복사 방식 개선
+COPY --from=builder --chown=$UID:$GID /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
-COPY --chown=$UID:$GID app/deployment/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY --chown=$UID:$GID app/ /app
 
-CMD ["/app/entrypoint.sh"]
+# 필요한 디렉토리들 복사
+COPY --chown=$UID:$GID common/deployment/ /app
+COPY --chown=$UID:$GID services/$SERVICE_PATH/app/ /app
+
+# Supervisor 설정 복사
+RUN cp /app/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+CMD ["supervisord", "-n"]

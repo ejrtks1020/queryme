@@ -14,4 +14,5 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "asyncmy>=0.2.9",
     "greenlet>=3.2.3",
+    "gunicorn>=23.0.0",
 ]

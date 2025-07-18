@@ -10,6 +10,7 @@ dependencies = [
     "bcrypt>=4.3.0",
     "fastapi>=0.115.12",
     "greenlet>=3.2.3",
+    "gunicorn>=23.0.0",
     "icecream>=2.1.4",
     "passlib>=1.7.4",
     "pydantic-settings>=2.9.1",
