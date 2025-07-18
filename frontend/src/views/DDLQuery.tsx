@@ -120,7 +120,6 @@ export default function DDLQuery() {
 
   // URL의 session_id 파라미터가 변경될 때 sessionId 업데이트
   useEffect(() => {
-    console.log('searchParams', searchParams);
     setIsSessionChanging(true);
     const urlSessionId = searchParams.get('session_id');
     if (urlSessionId && urlSessionId !== sessionId) {
