@@ -71,8 +71,11 @@ export default function DDLQuery() {
   const [sessionTitle, setSessionTitle] = useState('새로운 DDL 세션');
   const [historyList, setHistoryList] = useState<DDLQueryHistoryResponse[]>([]);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const [isSessionTransitioning, setIsSessionTransitioning] = useState(false);
-  const [sessionTransitionMessage, setSessionTransitionMessage] = useState('');
+  const [isSessionCreating, setIsSessionCreating] = useState(false);
+  const [sessionCreatingMessage, setSessionCreatingMessage] = useState('');
+
+  const [isSessionChanging, setIsSessionChanging] = useState(false);
+  
   
   // API hooks
   const getDdlSessionList = useApi(ddlSessionApi.getSessionList);
@@ -117,10 +120,15 @@ export default function DDLQuery() {
 
   // URL의 session_id 파라미터가 변경될 때 sessionId 업데이트
   useEffect(() => {
+    console.log('searchParams', searchParams);
+    setIsSessionChanging(true);
     const urlSessionId = searchParams.get('session_id');
     if (urlSessionId && urlSessionId !== sessionId) {
       setSessionId(urlSessionId);
     }
+    setTimeout(() => {
+      setIsSessionChanging(false);
+    }, 500);
   }, [searchParams]);
 
   // 세션 ID가 변경될 때 히스토리 로드 및 메시지 초기화
@@ -276,8 +284,8 @@ export default function DDLQuery() {
   // 메시지 초기화 (새 세션 시작)
   const handleClearMessages = () => {
     // 세션 전환 시작
-    setIsSessionTransitioning(true);
-    setSessionTransitionMessage('새로운 세션을 생성하고 있습니다...');
+    setIsSessionCreating(true);
+    setSessionCreatingMessage('새로운 세션을 생성하고 있습니다...');
     
     // 애니메이션을 위한 지연
     setTimeout(() => {
@@ -302,8 +310,8 @@ export default function DDLQuery() {
       
       // 세션 전환 완료
       setTimeout(() => {
-        setIsSessionTransitioning(false);
-        setSessionTransitionMessage('');
+        setIsSessionCreating(false);
+        setSessionCreatingMessage('');
         message.success('새로운 세션이 생성되었습니다!');
       }, 500);
     }, 300);
@@ -399,8 +407,8 @@ export default function DDLQuery() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* 세션 전환 오버레이 */}
-      {isSessionTransitioning && (
+      {/* 세션 전환 오버레이 - 새로운 세션 생성 시에만 표시 */}
+      {isSessionCreating && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -424,7 +432,7 @@ export default function DDLQuery() {
           }}>
             <Spin size="large" style={{ marginBottom: '16px' }} />
             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
-              {sessionTransitionMessage}
+              {sessionCreatingMessage}
             </div>
           </div>
         </div>
@@ -432,24 +440,27 @@ export default function DDLQuery() {
 
       {/* 헤더 */}
       <div style={{ 
-        padding: '16px 24px', 
+        padding: '50px 24px',
         borderBottom: '1px solid #f0f0f0',
         backgroundColor: 'white',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden',
       }}>
         {/* 진행 상태 인디케이터 */}
-        {isLoading && (
+        {(isLoading || isSessionChanging) && (
           <div style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             height: '3px',
-            background: 'linear-gradient(90deg, #1890ff, #52c41a)',
-            animation: 'progress-loading 2s infinite',
+            background: isLoading 
+              ? 'linear-gradient(90deg, #1890ff, #52c41a)' 
+              : 'linear-gradient(90deg, #722ed1, #1890ff)',
+            animation: 'progress-loading 1.5s infinite',
             zIndex: 10
           }} />
         )}
@@ -463,7 +474,11 @@ export default function DDLQuery() {
             뒤로가기
           </Button>
           <Space>
-            <CodeOutlined style={{ fontSize: '20px', color: '#1890ff' }} />
+            <CodeOutlined style={{ 
+              fontSize: '20px', 
+              color: isSessionChanging ? '#722ed1' : '#1890ff',
+              transition: 'color 0.3s ease'
+            }} />
             <div>
               <Title level={4} style={{ margin: 0 }}>
                 DDL 기반 쿼리
@@ -477,12 +492,26 @@ export default function DDLQuery() {
                     • 쿼리 처리 중...
                   </span>
                 )}
+                {isSessionChanging && (
+                  <span style={{ 
+                    marginLeft: '8px',
+                    fontSize: '14px',
+                    color: '#722ed1',
+                    fontWeight: 'normal'
+                  }}>
+                    • 세션 변경 중...
+                  </span>
+                )}
               </Title>
               <Text type="secondary">
                 스키마 정의를 통해 자연어로 SQL 쿼리를 생성합니다
               </Text>
               <br />
-              <Text type="secondary" style={{ fontSize: '12px' }}>
+              <Text type="secondary" style={{ 
+                fontSize: '12px',
+                color: isSessionChanging ? '#722ed1' : undefined,
+                transition: 'color 0.3s ease'
+              }}>
                 세션 ID: {sessionId}
               </Text>
             </div>
@@ -494,8 +523,8 @@ export default function DDLQuery() {
             icon={<ClearOutlined />}
             onClick={handleClearMessages}
             type="default"
-            loading={isSessionTransitioning}
-            disabled={isSessionTransitioning}
+            loading={isSessionCreating}
+            disabled={isSessionCreating || isSessionChanging}
           >
             새로운 세션
           </Button>
@@ -907,4 +936,4 @@ export default function DDLQuery() {
       `}} />
     </div>
   );
-} 
+}

@@ -77,6 +77,8 @@ export default function QueryPage() {
   const [historyDrawerVisible, setHistoryDrawerVisible] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  const [isConnectionChanging, setIsConnectionChanging] = useState(false);
+
   // API hooks
   const getConnection = useApi(connectionApi.getConnection);
   const getConnectionHistoryList = useApi(historyApi.getDatabaseQueryHistoryList);
@@ -143,7 +145,11 @@ export default function QueryPage() {
   // 연결 정보가 변경될 때 히스토리 로드
   useEffect(() => {
     if (connection?.id) {
+      setIsConnectionChanging(true);
       getConnectionHistoryList.request(connection.id);
+      setTimeout(() => {
+        setIsConnectionChanging(false);
+      }, 500);
     }
   }, [connection?.id]);
 
@@ -376,18 +382,21 @@ export default function QueryPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}>
         {/* 진행 상태 인디케이터 */}
-        {isLoading && (
+        {(isLoading || isConnectionChanging) && (
           <div style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             height: '3px',
-            background: 'linear-gradient(90deg, #1890ff, #52c41a)',
-            animation: 'progress-loading 2s infinite',
+            background: isLoading 
+              ? 'linear-gradient(90deg, #1890ff, #52c41a)' 
+              : 'linear-gradient(90deg, #722ed1, #1890ff)',
+            animation: 'progress-loading 1.5s infinite',
             zIndex: 10
           }} />
         )}
