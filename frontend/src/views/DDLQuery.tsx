@@ -40,7 +40,7 @@ import { SET_DDL_SESSIONS } from '@/store/actions';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { DDL_WELCOME_MESSAGE, DEFAULT_DDL_EXAMPLE } from '@/utils/messages';
+import { DDL_WELCOME_MESSAGE, DEFAULT_DDL_EXAMPLE, DDL_NEW_SESSION_WELCOME_MESSAGE } from '@/utils/messages';
 
 const { TextArea } = Input;
 const { Title, Text } = Typography;
@@ -137,12 +137,21 @@ export default function DDLQuery() {
       getDdlHistoryList.request(sessionId);
       
       // 새로운 세션으로 변경된 경우 메시지 초기화 및 DDL 스키마 초기화
-      setMessages([{
-        id: 'welcome',
-        type: 'assistant',
-        content: DDL_WELCOME_MESSAGE,
-        timestamp: new Date()
-      }]);
+      if (searchParams.size === 0) {
+        setMessages([{
+          id: 'welcome',
+          type: 'assistant',
+          content: DDL_NEW_SESSION_WELCOME_MESSAGE,
+          timestamp: new Date()
+        }]);
+      } else {
+        setMessages([{
+          id: 'welcome',
+          type: 'assistant',
+          content: DDL_WELCOME_MESSAGE,
+          timestamp: new Date()
+        }]);
+      }
       
       // DDL 스키마를 기본값으로 초기화 (히스토리에서 다시 설정될 수 있음)
       // setDdlSchema(DEFAULT_DDL_EXAMPLE);
@@ -151,11 +160,11 @@ export default function DDLQuery() {
 
   // 초기 환영 메시지 설정 (컴포넌트 마운트 시에만)
   useEffect(() => {
-    if (messages.length === 0) {
+    if (searchParams.size === 0) {
       setMessages([{
         id: 'welcome',
         type: 'assistant',
-        content: DDL_WELCOME_MESSAGE,
+        content: DDL_NEW_SESSION_WELCOME_MESSAGE,
         timestamp: new Date()
       }]);
     }
@@ -295,16 +304,14 @@ export default function DDLQuery() {
       setSessionTitle('새로운 DDL 세션');
       setDdlSchema(DEFAULT_DDL_EXAMPLE);
       setHistoryList([]);
-      
-      // URL 업데이트 (브라우저 히스토리에 추가하지 않음)
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set('session_id', newSessionId);
-      window.history.replaceState({}, '', newUrl);
+
+      // URL 업데이트
+      navigate('/ddl-query', { replace: true });
       
       setMessages([{
         id: 'welcome',
         type: 'assistant',
-        content: DDL_WELCOME_MESSAGE,
+        content: DDL_NEW_SESSION_WELCOME_MESSAGE,
         timestamp: new Date()
       }]);
       

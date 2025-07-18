@@ -1,4 +1,4 @@
-export const DDL_WELCOME_MESSAGE = `안녕하세요! DDL 기반 쿼리 도구입니다. 
+export const DDL_NEW_SESSION_WELCOME_MESSAGE = `안녕하세요! DDL 기반 쿼리 도구입니다. 
 
 왼쪽에 스키마 정의(DDL)를 입력하신 후, 자연어로 질문해주세요. 
 
@@ -6,10 +6,11 @@ export const DDL_WELCOME_MESSAGE = `안녕하세요! DDL 기반 쿼리 도구입
 - "모든 사용자 정보를 보여줘"
 - "가장 비싼 상품 5개를 찾아줘"
 - "주문 상태별로 주문 수를 집계해줘"
-- "사용자별 총 주문 금액을 계산해줘"
+- "사용자별 총 주문 금액을 계산해줘"`;
 
-궁금한 점이 있으시면 언제든 질문해주세요!`;
+export const DDL_WELCOME_MESSAGE = `안녕하세요! DDL 기반 쿼리 도구입니다. 
 
+왼쪽에 스키마 정의(DDL)를 기반으로 자연어로 질문해주세요.`;
 
 export const DEFAULT_DDL_EXAMPLE = `-- 사용자 테이블
 CREATE TABLE users (

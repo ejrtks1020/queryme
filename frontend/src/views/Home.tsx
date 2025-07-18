@@ -27,8 +27,7 @@ export default function Home() {
 
   // 새 DDL 세션 시작
   const handleStartDDLQuery = () => {
-    const newSessionId = generateSessionId();
-    navigate(`/ddl-query?session_id=${newSessionId}`);
+    navigate(`/ddl-query`);
   };
 
   return (
