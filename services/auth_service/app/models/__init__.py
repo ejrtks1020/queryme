@@ -1,4 +1,4 @@
-from common.db.maria import Base
+from db.maria import Base
 from models.user import User
 from models.session import Session
 

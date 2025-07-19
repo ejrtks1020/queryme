@@ -1,6 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 import sys
+import subprocess
 from core.config import PROFILE
 
 if PROFILE == "local":
@@ -13,13 +14,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.database_query_history_router import router as database_query_history_router
 from api.ddl_query_history_router import router as ddl_query_history_router
 from db.maria import Base, engine
+from common.core.logger import Logger
+
+logger = Logger.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 데이터베이스 테이블 생성 (필요한 경우)
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)
+    # Alembic migration 실행
+    try:
+        subprocess.run(["alembic", "upgrade", "head"], check=True, cwd=os.path.dirname(__file__))
+        logger.info("Alembic migration completed successfully")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Alembic migration failed: {e}")
+        raise
+    except FileNotFoundError:
+        logger.warning("Alembic not found, skipping migration")
+    
     yield
 
 
