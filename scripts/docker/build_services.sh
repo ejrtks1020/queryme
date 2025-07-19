@@ -18,8 +18,8 @@ echo "SERVICES_DIR: $SERVICES_DIR"
 
 echo -e "${BLUE}🔨 QueryMe 서비스 빌드 시작${NC}"
 
-# 서비스 목록
-SERVICES=(
+# 전체 서비스 목록
+ALL_SERVICES=(
     "auth_service"
     "connection_service" 
     "ddl_session_service"
@@ -28,9 +28,20 @@ SERVICES=(
     "gateway"
 )
 
-# Docker 이미지 태그 (기본값: latest)
-TAG=${1:-latest}
+TAG=latest
 
+# 서비스 목록 결정
+if [ $# -eq 0 ]; then
+    # 인자가 없으면 전체 서비스 빌드
+    SERVICES=("${ALL_SERVICES[@]}")
+    echo -e "${BLUE}📋 전체 서비스 빌드: ${SERVICES[*]}${NC}"
+else
+    # 인자가 있으면 지정된 서비스만 빌드
+    SERVICES=("$@")
+    echo -e "${BLUE}📋 지정된 서비스 빌드: ${SERVICES[*]}${NC}"
+fi
+echo $#
+exit 0
 # 빌드 성공/실패 카운터
 SUCCESS_COUNT=0
 FAILED_SERVICES=()

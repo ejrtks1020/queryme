@@ -62,15 +62,24 @@ USER $UID:$GID
 
 WORKDIR /app
 
-# 가상환경 복사 방식 개선
 COPY --from=builder --chown=$UID:$GID /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# 필요한 디렉토리들 복사
-COPY --chown=$UID:$GID common/deployment/ /app
+RUN mkdir -p /app/common
+COPY --chown=$UID:$GID common/ /app/common/
 COPY --chown=$UID:$GID services/$SERVICE_PATH/app/ /app
 
 # Supervisor 설정 복사
-RUN cp /app/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN cp /app/common/deployment/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Python 심볼릭 링크를 올바른 경로로 수정
+RUN cd /app/.venv/bin && \
+rm -f python python3 python3.12 && \
+ln -sf /usr/local/bin/python3 python && \
+ln -sf /usr/local/bin/python3 python3 && \
+ln -sf /usr/local/bin/python3 python3.12
+
+# 모든 Python 실행 파일의 shebang 수정
+RUN find /app/.venv/bin -type f -executable -exec sed -i '1s|^#!.*python.*|#!/app/.venv/bin/python3|' {} \; 2>/dev/null || true
 
 CMD ["supervisord", "-n"]

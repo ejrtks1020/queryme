@@ -33,31 +33,31 @@ class GatewaySettings(BaseSettings):
     auth_service_host_local: str = "localhost"
     auth_service_port_local: int = 8081
     auth_service_host_prod: str = "auth_service"
-    auth_service_port_prod: int = 8081
+    auth_service_port_prod: int = 8080
     
     # Connection Service settings (환경 변수로 오버라이드 가능)
     connection_service_host_local: str = "localhost"
     connection_service_port_local: int = 8082
     connection_service_host_prod: str = "connection_service"
-    connection_service_port_prod: int = 8082
+    connection_service_port_prod: int = 8080
 
     # NL2SQL Service settings (환경 변수로 오버라이드 가능)
     nl2sql_service_host_local: str = "localhost"
     nl2sql_service_port_local: int = 8083
     nl2sql_service_host_prod: str = "nl2sql_service"
-    nl2sql_service_port_prod: int = 8083
+    nl2sql_service_port_prod: int = 8080
 
     # DDL Session Service settings (환경 변수로 오버라이드 가능)
     ddl_session_service_host_local: str = "localhost"
     ddl_session_service_port_local: int = 8084
     ddl_session_service_host_prod: str = "ddl_session_service"
-    ddl_session_service_port_prod: int = 8084
+    ddl_session_service_port_prod: int = 8080
 
     # History Service settings (환경 변수로 오버라이드 가능)
     history_service_host_local: str = "localhost"
     history_service_port_local: int = 8085
     history_service_host_prod: str = "history_service"
-    history_service_port_prod: int = 8085
+    history_service_port_prod: int = 8080
     
     # Custom auth service settings (환경 변수로 오버라이드 가능)
     auth_service_host: str = ""

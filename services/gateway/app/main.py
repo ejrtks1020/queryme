@@ -111,12 +111,11 @@ async def root():
     }
 
 
-@app.get("/health")
+@app.get("/healthcheck")
 async def health_check():
     """헬스 체크 엔드포인트"""
     return {
-        "status": "healthy",
-        "profile": settings.profile
+        "status": "ok"
     }
 
 

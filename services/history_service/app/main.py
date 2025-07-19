@@ -69,10 +69,10 @@ async def root():
     return {"message": "History Service is running", "service": "history_service", "version": "1.0.0"}
 
 
-@app.get("/health")
+@app.get("/healthcheck")
 async def health_check():
     """헬스 체크 엔드포인트"""
-    return {"status": "healthy", "service": "history_service"}
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":

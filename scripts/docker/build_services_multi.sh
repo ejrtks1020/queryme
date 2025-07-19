@@ -18,8 +18,8 @@ echo "SERVICES_DIR: $SERVICES_DIR"
 
 echo -e "${BLUE}🔨 QueryMe 서비스 빌드 시작 (병렬 처리)${NC}"
 
-# 서비스 목록
-SERVICES=(
+# 전체 서비스 목록
+ALL_SERVICES=(
     "auth_service"
     "connection_service" 
     "ddl_session_service"
@@ -28,11 +28,24 @@ SERVICES=(
     "gateway"
 )
 
-# Docker 이미지 태그 (기본값: latest)
-TAG=${1:-latest}
+# 인자 처리
+TAG=latest
 
-# 동시 실행 수 제한 (CPU 코어 수에 따라 조정)
-MAX_JOBS=${2:-4}
+MAX_JOBS=4
+
+# 서비스 목록 결정
+if [ $# -eq 0 ]; then
+    # 인자가 없으면 전체 서비스 빌드
+    SERVICES=("${ALL_SERVICES[@]}")
+    echo -e "${BLUE}📋 전체 서비스 빌드: ${SERVICES[*]}${NC}"
+else
+    # 인자가 있으면 지정된 서비스만 빌드
+    SERVICES=("$@")
+    echo -e "${BLUE}📋 지정된 서비스 빌드: ${SERVICES[*]}${NC}"
+fi
+
+echo -e "${BLUE}🏷️  태그: $TAG${NC}"
+echo -e "${BLUE}⚡ 동시 실행 수: $MAX_JOBS${NC}"
 
 # 빌드 성공/실패 카운터
 SUCCESS_COUNT=0
@@ -51,36 +64,47 @@ build_service() {
     
     if [ ! -d "$SERVICE_DIR" ]; then
         echo -e "${RED}❌ 서비스 디렉토리를 찾을 수 없습니다: $SERVICE_DIR${NC}"
+        echo "FAILED" > "/tmp/build_${service}.status"
         return 1
     fi
     
     # Dockerfile 존재 확인
     if [ -f "$SERVICE_DIR/Dockerfile" ]; then
         # 개별 Dockerfile이 있는 경우
-        docker build \
+        if docker build \
             --target runtime \
             -f "$SERVICE_DIR/Dockerfile" \
             -t "queryme/$service:$tag" \
-            "$PROJECT_ROOT" > "/tmp/build_${service}.log" 2>&1
+            "$PROJECT_ROOT" > "/tmp/build_${service}.log" 2>&1; then
+            echo "SUCCESS" > "/tmp/build_${service}.status"
+            echo -e "${GREEN}✅ $service 빌드 완료${NC}"
+            return 0
+        else
+            echo "FAILED" > "/tmp/build_${service}.status"
+            echo -e "${RED}❌ $service 빌드 실패${NC}"
+            echo -e "${RED}로그: /tmp/build_${service}.log${NC}"
+            return 1
+        fi
     elif [ -f "$SERVICE_DIR/app/pyproject.toml" ]; then
         # 공통 Dockerfile 사용
-        docker build \
+        if docker build \
             --target runtime \
             -f "$PROJECT_ROOT/scripts/docker/Dockerfile.services" \
             -t "queryme/$service:$tag" \
             --build-arg SERVICE_PATH="$service" \
-            "$PROJECT_ROOT" > "/tmp/build_${service}.log" 2>&1
+            "$PROJECT_ROOT" > "/tmp/build_${service}.log" 2>&1; then
+            echo "SUCCESS" > "/tmp/build_${service}.status"
+            echo -e "${GREEN}✅ $service 빌드 완료${NC}"
+            return 0
+        else
+            echo "FAILED" > "/tmp/build_${service}.status"
+            echo -e "${RED}❌ $service 빌드 실패${NC}"
+            echo -e "${RED}로그: /tmp/build_${service}.log${NC}"
+            return 1
+        fi
     else
         echo -e "${RED}❌ 빌드할 수 없는 서비스: $service (pyproject.toml 없음)${NC}"
-        return 1
-    fi
-    
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ $service 빌드 완료${NC}"
-        return 0
-    else
-        echo -e "${RED}❌ $service 빌드 실패${NC}"
-        echo -e "${RED}로그: /tmp/build_${service}.log${NC}"
+        echo "FAILED" > "/tmp/build_${service}.status"
         return 1
     fi
 }
@@ -110,9 +134,9 @@ wait
 
 # 결과 수집
 for service in "${SERVICES[@]}"; do
-    if [ -f "/tmp/build_${service}.log" ]; then
-        # 로그 파일에서 성공/실패 확인
-        if grep -q "Successfully built" "/tmp/build_${service}.log" 2>/dev/null; then
+    if [ -f "/tmp/build_${service}.status" ]; then
+        # 상태 파일에서 성공/실패 확인
+        if [ "$(cat "/tmp/build_${service}.status")" = "SUCCESS" ]; then
             ((SUCCESS_COUNT++))
         else
             FAILED_SERVICES+=("$service")
@@ -142,4 +166,5 @@ fi
 # 임시 로그 파일 정리
 for service in "${SERVICES[@]}"; do
     rm -f "/tmp/build_${service}.log"
+    rm -f "/tmp/build_${service}.status"
 done

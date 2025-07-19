@@ -106,20 +106,9 @@ services:
       - TZ=Asia/Seoul
     volumes:
       - mariadb_data:/var/lib/mysql
+      - ../scripts/sql/create_database.sql:/docker-entrypoint-initdb.d/create_database.sql
     ports:
       - "3306:3306"
-    networks:
-      - backend
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"      # AMQP
-      - "15672:15672"    # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
     networks:
       - backend
 
