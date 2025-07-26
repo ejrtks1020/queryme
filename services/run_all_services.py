@@ -161,22 +161,18 @@ class ServiceManager:
         if not main_file.exists():
             logger.error(f"{Colors.RED}main.py 파일이 존재하지 않습니다: {main_file}{Colors.RESET}")
             return False
-            
-        # pyproject.toml 파일 존재 확인
-        pyproject_file = service_path / "pyproject.toml"
-        if not pyproject_file.exists():
-            logger.error(f"{Colors.RED}pyproject.toml 파일이 존재하지 않습니다: {pyproject_file}{Colors.RESET}")
-            return False
         
         # 환경 변수 설정
         env = os.environ.copy()
         env.update(config["env"])
+        env["PYTHONPATH"] = str(self.services_root)  # 이 줄 추가
         
         try:
-            # uv run main.py로 서비스 시작 (로그 스트리밍을 위해 pipe 사용하지 않음)
+            # 루트에서 uv run으로 서비스 시작 (모노레포 구조)
+            main_script = f"{config['path']}/main.py"
             process = subprocess.Popen(
-                ["uv", "run", "main.py"],
-                cwd=service_path,
+                ["uv", "run", main_script],
+                cwd=self.services_root,  # 루트 디렉토리에서 실행
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,  # stderr를 stdout으로 리다이렉트
@@ -215,10 +211,16 @@ class ServiceManager:
     
     def start_all_services(self) -> bool:
         """모든 서비스 시작"""
-        logger.info(f"{Colors.CYAN}🚀 QueryMe 모든 서비스 시작 중...{Colors.RESET}")
+        logger.info(f"{Colors.CYAN}🚀 QueryMe 모든 서비스 시작 중... (모노레포 구조){Colors.RESET}")
         
         # uv 설치 확인
         if not self.check_uv_installed():
+            return False
+        
+        # 루트 pyproject.toml 파일 존재 확인
+        root_pyproject = self.services_root / "pyproject.toml"
+        if not root_pyproject.exists():
+            logger.error(f"{Colors.RED}❌ 루트 pyproject.toml 파일이 존재하지 않습니다: {root_pyproject}{Colors.RESET}")
             return False
         
         # 로그 소비자 시작
@@ -247,6 +249,7 @@ class ServiceManager:
                 return False
         
         logger.info(f"{Colors.GREEN}✅ {success_count}/{len(service_order)} 서비스가 성공적으로 시작되었습니다!{Colors.RESET}")
+        logger.info(f"{Colors.CYAN}📝 모든 서비스가 루트 pyproject.toml의 의존성을 공유합니다.{Colors.RESET}")
         return True
     
     def stop_service(self, service_name: str):
@@ -321,6 +324,7 @@ class ServiceManager:
         try:
             if self.start_all_services():
                 logger.info(f"\n{Colors.GREEN} 모든 서비스가 성공적으로 시작되었습니다!{Colors.RESET}")
+                logger.info(f"{Colors.CYAN}📋 모노레포 구조: 모든 서비스가 루트 pyproject.toml을 공유합니다.{Colors.RESET}")
                 logger.info(f"{Colors.CYAN} 사용 가능한 명령어:{Colors.RESET}")
                 logger.info("  status - 서비스 상태 확인")
                 logger.info("  stop   - 모든 서비스 중지")

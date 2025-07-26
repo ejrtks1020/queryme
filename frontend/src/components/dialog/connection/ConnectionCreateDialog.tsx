@@ -257,7 +257,7 @@ export default function ConnectionDialog({ visible, onClose }: ConnectionDialogP
           label="테이블명"
           name="database_table"
           rules={[
-            { required: true, message: '테이블명을 입력해주세요.' },
+            { message: '테이블명을 입력해주세요.' },
             { max: 255, message: '테이블명은 255자 이하여야 합니다.' }
           ]}
         >

@@ -15,7 +15,7 @@ class Connection(Base):
     database_password: Mapped[str] = mapped_column(String(255))
     database_port: Mapped[int] = mapped_column(Integer, nullable=True)
     database_host: Mapped[str] = mapped_column(String(255), nullable=True)
-    database_table: Mapped[str] = mapped_column(String(255))
+    database_table: Mapped[str] = mapped_column(String(255), nullable=True)
     reg_user_id: Mapped[int] = mapped_column(Integer)
     reg_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     mod_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

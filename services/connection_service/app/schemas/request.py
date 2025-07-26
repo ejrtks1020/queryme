@@ -11,7 +11,7 @@ class ConnectionCreateRequest(BaseModel):
     database_password: str
     database_port: int | None = None
     database_host: str | None = None
-    database_table: str
+    database_table: str | None = None
 
     model_config = {
         "json_schema_extra": {
@@ -40,7 +40,7 @@ class ConnectionUpdateRequest(BaseModel):
     database_password: str
     database_port: int | None = None
     database_host: str | None = None
-    database_table: str
+    database_table: str | None = None
 
     model_config = {
         "json_schema_extra": {
